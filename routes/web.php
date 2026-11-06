@@ -8,6 +8,37 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+/*
+|--------------------------------------------------------------------------
+| Formulir Observasi (SEMENTARA tanpa login)
+|--------------------------------------------------------------------------
+| Nanti, setelah database & login siap, pindahkan grup ini ke dalam
+| Route::middleware('auth') dan tambahkan ->middleware('peran:guru').
+*/
+Route::prefix('guru/observasi')
+    ->name('guru.observasi.')
+    ->group(function () {
+        Route::view('/', 'formulir-pencatatan-observasi.index')->name('index');
+
+        Route::post('/', function (Request $request) {
+            $request->validate([
+                'kelas_id'             => ['required'],
+                'anak_id'              => ['required'],
+                'tanggal_observasi'    => ['required', 'date'],
+                'kegiatan'             => ['required', 'string', 'max:150'],
+                'indikator'            => ['required', 'array'],
+                'indikator.*'          => ['required', 'in:BSB,BSH,MB,BB'],
+                'deskripsi_pengamatan' => ['nullable', 'string', 'max:2000'],
+                'tindak_lanjut'        => ['nullable', 'string', 'max:2000'],
+            ]);
+
+            // TODO: pindahkan ke ObservasiController@store lalu simpan ke database
+            return redirect()
+                ->route('guru.observasi.index')
+                ->with('sukses', 'Observasi berhasil disimpan.');
+        })->name('store');
+    });
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
