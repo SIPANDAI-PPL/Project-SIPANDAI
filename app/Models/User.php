@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -13,15 +12,22 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
+    protected $authPasswordName = 'kata_sandi';
+
     /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'nama',
+        'nama_pengguna',
         'email',
-        'password',
+        'kata_sandi',
+        'peran',
+        'nip',
+        'aktif',
+        'wajib_ganti_sandi',
     ];
 
     /**
@@ -30,7 +36,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password',
+        'kata_sandi',
         'remember_token',
     ];
 
@@ -42,8 +48,14 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'kata_sandi' => 'hashed',
+            'aktif' => 'boolean',
+            'wajib_ganti_sandi' => 'boolean',
         ];
+    }
+
+    public function ruteDashboard(): string
+    {
+        return $this->peran === 'admin' ? 'admin.dashboard' : 'guru.dashboard';
     }
 }
