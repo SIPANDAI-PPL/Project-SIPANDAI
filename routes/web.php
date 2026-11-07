@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\AlternatifStrategiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -12,7 +13,10 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
     Route::post('/login', [LoginController::class, 'store']);
 });
-
+Route::get('/alternatif-strategi', function () {
+    return view('alternatif-strategi.index');
+    })->name('alternatif-strategi.index');
+    
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
@@ -27,4 +31,6 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/dashboard', 'guru.dashboard')
         ->middleware('peran:guru')
         ->name('guru.dashboard');
+
+   
 });
