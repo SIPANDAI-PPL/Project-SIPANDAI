@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Guru\KelolaDataAnakController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,4 +28,9 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/dashboard', 'guru.dashboard')
         ->middleware('peran:guru')
         ->name('guru.dashboard');
+
+    Route::middleware('peran:guru')->prefix('guru/anak')->name('guru.anak.')->group(function () {
+        Route::get('/', [KelolaDataAnakController::class, 'index'])->name('index');
+        Route::get('/{anak}', [KelolaDataAnakController::class, 'show'])->whereNumber('anak')->name('show');
+    });
 });
