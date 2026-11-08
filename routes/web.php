@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\KelolaObservasiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,4 +28,11 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/dashboard', 'guru.dashboard')
         ->middleware('peran:guru')
         ->name('guru.dashboard');
+
+    // PBI-8: masih tahap tampilan, data observasi berasal dari data dummy di controller.
+    Route::get('/observasi/{id}/kelola', [KelolaObservasiController::class, 'show'])
+        ->name('observasi.kelola.show');
+
+    Route::get('/observasi/{id}/kelola/ubah', [KelolaObservasiController::class, 'edit'])
+        ->name('observasi.kelola.edit');
 });
