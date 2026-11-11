@@ -50,4 +50,11 @@ class UserFactory extends Factory
             'aktif' => false,
         ]);
     }
+
+    public function wajibGantiSandi(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'wajib_ganti_sandi' => true,
+        ]);
+    }
 }

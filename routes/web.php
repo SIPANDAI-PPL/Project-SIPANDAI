@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GantiKataSandiController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,9 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+    Route::get('/ganti-kata-sandi', [GantiKataSandiController::class, 'create'])->name('kata-sandi.edit');
+    Route::put('/ganti-kata-sandi', [GantiKataSandiController::class, 'update'])->name('kata-sandi.update');
 
     Route::get('/dashboard', function (Request $request) {
         return redirect()->route($request->user()->ruteDashboard());
