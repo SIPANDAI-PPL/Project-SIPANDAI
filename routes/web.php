@@ -27,4 +27,9 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/dashboard', 'guru.dashboard')
         ->middleware('peran:guru')
         ->name('guru.dashboard');
+
+    // Pratinjau frontend PBI-11. Ganti dengan controller RiwayatObservasiController saat backend siap.
+    Route::view('/guru/riwayat-observasi', 'guru.riwayat_observasi')
+        ->middleware('peran:guru')
+        ->name('guru.riwayat-observasi');
 });
