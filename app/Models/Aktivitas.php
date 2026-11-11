@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\AktivitasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -27,6 +28,12 @@ class Aktivitas extends Model
         return [
             'aktif' => 'boolean',
         ];
+    }
+
+    /** Hanya aktivitas berstatus aktif, untuk pilihan di formulir observasi. */
+    public function scopeAktif(Builder $query): void
+    {
+        $query->where('aktif', true);
     }
 
     public function observasi(): HasMany

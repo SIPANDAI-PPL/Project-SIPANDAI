@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\StrategiPembelajaranFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,6 +17,14 @@ class StrategiPembelajaran extends Model
 
     public $timestamps = false;
 
+    /** Relasi yang dihitung (withCount) untuk kolom "Dipakai di" dan pengecekan hapus. */
+    public const RELASI_PEMAKAIAN = [
+        'observasi',
+        'aturanSebagaiAsal',
+        'aturanSebagaiAlternatif',
+        'alternatifStrategi',
+    ];
+
     protected $fillable = [
         'nama',
         'deskripsi',
@@ -27,6 +36,18 @@ class StrategiPembelajaran extends Model
         return [
             'aktif' => 'boolean',
         ];
+    }
+
+    /** Hanya strategi berstatus aktif, untuk pilihan di formulir observasi dan aturan strategi. */
+    public function scopeAktif(Builder $query): void
+    {
+        $query->where('aktif', true);
+    }
+
+    /** Jumlah aturan (sebagai asal dan alternatif). Butuh withCount/loadCount RELASI_PEMAKAIAN. */
+    public function jumlahAturan(): int
+    {
+        return (int) $this->aturan_sebagai_asal_count + (int) $this->aturan_sebagai_alternatif_count;
     }
 
     /** Aturan yang memakai strategi ini sebagai strategi asal. */
