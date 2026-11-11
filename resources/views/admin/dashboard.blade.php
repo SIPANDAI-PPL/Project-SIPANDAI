@@ -11,6 +11,10 @@
     <h1 class="text-2xl font-semibold">Dashboard Admin</h1>
     <p class="mt-1 text-sm text-gray-600">Selamat datang, {{ auth()->user()->nama }}</p>
 
+    <nav class="mt-4 flex flex-wrap gap-3 text-sm">
+        <a href="{{ route('admin.aturan-strategi.index') }}" class="inline-block rounded bg-indigo-900 px-4 py-2 text-white hover:bg-indigo-800">Aturan Strategi</a>
+    </nav>
+
     <form method="POST" action="{{ route('logout') }}" class="mt-4">
         @csrf
         <button type="submit" class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">Keluar</button>
