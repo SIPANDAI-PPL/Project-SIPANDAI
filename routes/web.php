@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\AturanStrategiController;
 use App\Http\Controllers\Admin\KelolaAkunGuruController;
 use App\Http\Controllers\Auth\GantiKataSandiController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DataMaster\AktivitasController;
+use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -75,5 +77,27 @@ Route::middleware('auth')->group(function () {
             Route::patch('/strategi/{strategi}/nonaktifkan', [StrategiPembelajaranController::class, 'nonaktifkan'])->name('strategi.nonaktifkan');
             Route::patch('/strategi/{strategi}/aktifkan', [StrategiPembelajaranController::class, 'aktifkan'])->name('strategi.aktifkan');
             Route::delete('/strategi/{strategi}', [StrategiPembelajaranController::class, 'destroy'])->name('strategi.destroy');
+        });
+
+    // PBI-4 Kelola Aspek Perkembangan (admin saja). Diletakkan di bawah grup data-master PBI-2.
+    Route::middleware('peran:admin')->prefix('data-master')->name('data-master.')->group(function () {
+        Route::controller(AspekPerkembanganController::class)->prefix('aspek')->name('aspek.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{aspek}', 'update')->name('update');
+            Route::delete('/{aspek}', 'destroy')->name('destroy');
+        });
+    });
+
+    // PBI-4 Kelola Aturan Alternatif Strategi (admin saja).
+    Route::middleware('peran:admin')->prefix('admin/aturan-strategi')->name('admin.aturan-strategi.')
+        ->controller(AturanStrategiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{aturan}', 'update')->name('update');
+            Route::patch('/{aturan}/nonaktifkan', 'nonaktifkan')->name('nonaktifkan');
+            Route::patch('/{aturan}/aktifkan', 'aktifkan')->name('aktifkan');
+            Route::delete('/{aturan}', 'destroy')->name('destroy');
         });
 });
