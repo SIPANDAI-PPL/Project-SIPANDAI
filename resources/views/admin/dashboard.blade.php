@@ -15,8 +15,9 @@
         <p class="mt-4 rounded bg-green-100 px-4 py-2 text-sm text-green-800">{{ session('status') }}</p>
     @endif
 
-    <nav class="mt-4">
-        <a href="{{ route('admin.guru.index') }}" class="inline-block rounded bg-indigo-900 px-4 py-2 text-white hover:bg-indigo-800">Kelola Akun Guru</a>
+    <nav class="mt-4 flex flex-wrap gap-3 text-sm">
+        <a href="{{ route('data-master.aktivitas.index') }}" class="rounded bg-indigo-900 px-4 py-2 text-white hover:bg-indigo-800">Data Master</a>
+        <a href="{{ route('admin.guru.index') }}" class="rounded bg-indigo-900 px-4 py-2 text-white hover:bg-indigo-800">Kelola Akun Guru</a>
     </nav>
 
     <form method="POST" action="{{ route('logout') }}" class="mt-4">

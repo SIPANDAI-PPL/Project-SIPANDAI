@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\KelolaAkunGuruController;
 use App\Http\Controllers\Auth\GantiKataSandiController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DataMaster\AktivitasController;
+use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -54,4 +56,24 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/riwayat-observasi', 'guru.riwayat_observasi')
         ->middleware('peran:guru')
         ->name('guru.riwayat-observasi');
+
+    // PBI-2 Kelola Aktivitas dan Strategi Pembelajaran (admin dan guru).
+    Route::middleware('peran:admin,guru')
+        ->prefix('data-master')
+        ->name('data-master.')
+        ->group(function () {
+            Route::get('/aktivitas', [AktivitasController::class, 'index'])->name('aktivitas.index');
+            Route::post('/aktivitas', [AktivitasController::class, 'store'])->name('aktivitas.store');
+            Route::put('/aktivitas/{aktivitas}', [AktivitasController::class, 'update'])->name('aktivitas.update');
+            Route::patch('/aktivitas/{aktivitas}/nonaktifkan', [AktivitasController::class, 'nonaktifkan'])->name('aktivitas.nonaktifkan');
+            Route::patch('/aktivitas/{aktivitas}/aktifkan', [AktivitasController::class, 'aktifkan'])->name('aktivitas.aktifkan');
+            Route::delete('/aktivitas/{aktivitas}', [AktivitasController::class, 'destroy'])->name('aktivitas.destroy');
+
+            Route::get('/strategi', [StrategiPembelajaranController::class, 'index'])->name('strategi.index');
+            Route::post('/strategi', [StrategiPembelajaranController::class, 'store'])->name('strategi.store');
+            Route::put('/strategi/{strategi}', [StrategiPembelajaranController::class, 'update'])->name('strategi.update');
+            Route::patch('/strategi/{strategi}/nonaktifkan', [StrategiPembelajaranController::class, 'nonaktifkan'])->name('strategi.nonaktifkan');
+            Route::patch('/strategi/{strategi}/aktifkan', [StrategiPembelajaranController::class, 'aktifkan'])->name('strategi.aktifkan');
+            Route::delete('/strategi/{strategi}', [StrategiPembelajaranController::class, 'destroy'])->name('strategi.destroy');
+        });
 });

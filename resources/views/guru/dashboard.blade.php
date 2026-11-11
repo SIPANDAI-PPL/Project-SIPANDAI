@@ -15,6 +15,10 @@
         <p class="mt-4 rounded bg-green-100 px-4 py-2 text-sm text-green-800">{{ session('status') }}</p>
     @endif
 
+    <nav class="mt-4 flex flex-wrap gap-3 text-sm">
+        <a href="{{ route('data-master.aktivitas.index') }}" class="rounded bg-indigo-900 px-4 py-2 text-white hover:bg-indigo-800">Aktivitas &amp; Strategi</a>
+    </nav>
+
     <form method="POST" action="{{ route('logout') }}" class="mt-4">
         @csrf
         <button type="submit" class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-900">Keluar</button>
