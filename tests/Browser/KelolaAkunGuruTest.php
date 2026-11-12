@@ -52,8 +52,10 @@ class KelolaAkunGuruTest extends DuskTestCase
             ->type('login', 'admin')
             ->type('kata_sandi', 'Admin#2026')
             ->press('Masuk')
+            ->waitForLocation('/admin/dashboard')
             ->assertPathIs('/admin/dashboard')
             ->clickLink('Kelola Akun Guru')
+            ->waitForLocation('/admin/guru')
             ->assertPathIs('/admin/guru');
     }
 
@@ -95,6 +97,7 @@ class KelolaAkunGuruTest extends DuskTestCase
         $this->browse(function (Browser $browser) {
             $this->masukSebagaiAdmin($browser)
                 ->click("@menu-aksi-{$this->ayu->id}")
+                ->waitFor("@aksi-reset-{$this->ayu->id}")
                 ->click("@aksi-reset-{$this->ayu->id}")
                 ->waitFor('@modal-reset')
                 ->assertSeeIn('@modal-reset', 'Ayu Rizki')
@@ -118,6 +121,7 @@ class KelolaAkunGuruTest extends DuskTestCase
         $this->browse(function (Browser $browser) {
             $this->masukSebagaiAdmin($browser)
                 ->click("@menu-aksi-{$this->ayu->id}")
+                ->waitFor("@aksi-nonaktifkan-{$this->ayu->id}")
                 ->click("@aksi-nonaktifkan-{$this->ayu->id}")
                 ->waitFor('@modal-nonaktifkan')
                 ->assertSeeIn('@modal-nonaktifkan', 'Nonaktifkan akun Ayu Rizki?')
@@ -135,6 +139,7 @@ class KelolaAkunGuruTest extends DuskTestCase
         $this->browse(function (Browser $browser) {
             $this->masukSebagaiAdmin($browser)
                 ->click("@menu-aksi-{$this->ayu->id}")
+                ->waitFor("@aksi-reset-{$this->ayu->id}")
                 ->click("@aksi-reset-{$this->ayu->id}")
                 ->waitFor('@modal-reset')
                 ->click('@konfirmasi-reset')

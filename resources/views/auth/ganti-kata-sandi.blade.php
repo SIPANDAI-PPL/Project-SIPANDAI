@@ -1,47 +1,37 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ganti Kata Sandi - SIPANDAI</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="flex min-h-screen items-center justify-center bg-gray-100 p-4 font-sans text-gray-900">
-    <main class="w-full max-w-sm rounded-lg bg-white p-6 shadow">
-        <h1 class="text-2xl font-semibold">Ganti Kata Sandi</h1>
-        <p class="mt-1 text-sm text-gray-600">Anda masih memakai kata sandi sementara. Buat kata sandi baru untuk melanjutkan.</p>
+<x-layouts.guest title="Ganti Kata Sandi">
+    <h1 class="text-2xl font-bold text-gray-900">Ganti Kata Sandi</h1>
+    <p class="mt-1.5 text-sm text-gray-600">Anda masih memakai kata sandi sementara. Buat kata sandi baru untuk melanjutkan.</p>
 
-        <form method="POST" action="{{ route('kata-sandi.update') }}" class="mt-6 space-y-4">
-            @csrf
-            @method('PUT')
+    <form method="POST" action="{{ route('kata-sandi.update') }}" class="mt-8 space-y-5">
+        @csrf
+        @method('PUT')
 
-            <div>
-                <label for="kata_sandi_baru" class="block text-sm font-medium">Kata sandi baru</label>
-                <input id="kata_sandi_baru" name="kata_sandi_baru" type="password"
-                    autocomplete="new-password" minlength="8" autofocus required
-                    class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
-                <p class="mt-1 text-xs text-gray-500">Minimal 8 karakter.</p>
-                @error('kata_sandi_baru')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
+        <div>
+            <label for="kata_sandi_baru" class="block text-sm font-medium text-gray-800">Kata sandi baru</label>
+            <x-input-sandi name="kata_sandi_baru" placeholder="Masukkan kata sandi baru"
+                autocomplete="new-password" minlength="8" autofocus required :salah="$errors->has('kata_sandi_baru')" />
+            @error('kata_sandi_baru')
+                <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p>
+            @else
+                <p class="mt-1.5 text-xs text-gray-500">Minimal 8 karakter.</p>
+            @enderror
+        </div>
 
-            <div>
-                <label for="kata_sandi_baru_confirmation" class="block text-sm font-medium">Konfirmasi kata sandi baru</label>
-                <input id="kata_sandi_baru_confirmation" name="kata_sandi_baru_confirmation" type="password"
-                    autocomplete="new-password" minlength="8" required
-                    class="mt-1 block w-full rounded border border-gray-300 px-3 py-2">
-            </div>
+        <div>
+            <label for="kata_sandi_baru_confirmation" class="block text-sm font-medium text-gray-800">Konfirmasi kata sandi baru</label>
+            <x-input-sandi name="kata_sandi_baru_confirmation" placeholder="Ulangi kata sandi baru"
+                autocomplete="new-password" minlength="8" required />
+        </div>
 
-            <button type="submit" class="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700">
-                Simpan kata sandi
-            </button>
-        </form>
+        <button type="submit"
+            class="h-12 w-full rounded-[10px] bg-[#2E2580] px-4 text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#251E68] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#2E2580]/30 active:bg-[#1F1958] motion-reduce:transition-none">
+            Simpan kata sandi
+        </button>
+    </form>
 
-        <form method="POST" action="{{ route('logout') }}" class="mt-3">
-            @csrf
-            <button type="submit" class="w-full rounded px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">Keluar</button>
-        </form>
-    </main>
-</body>
-</html>
+    <form method="POST" action="{{ route('logout') }}" class="mt-3">
+        @csrf
+        <button type="submit"
+            class="h-11 w-full rounded-[10px] text-sm font-medium text-gray-600 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#2E2580]/20 motion-reduce:transition-none">Keluar</button>
+    </form>
+</x-layouts.guest>
