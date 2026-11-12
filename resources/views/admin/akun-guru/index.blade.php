@@ -1,4 +1,4 @@
-{{-- PBI-1 Kelola Akun Guru dan Reset Kata Sandi. Halaman berdiri sendiri karena layout admin belum ada. --}}
+{{-- PBI-1 Kelola Akun Guru dan Reset Kata Sandi. --}}
 @php
     $inisial = fn (string $nama) => collect(preg_split('/\s+/', trim($nama)))
         ->filter()
@@ -13,38 +13,7 @@
     $kelasInputNormal = 'border-gray-300 focus:border-indigo-700';
     $kelasInputSalah = 'border-red-500 focus:border-red-500';
 @endphp
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kelola Akun Guru - SIPANDAI</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-gray-50 font-sans text-gray-900">
-    <header class="flex items-center justify-between bg-indigo-950 px-6 py-4 text-white">
-        <a href="{{ route('admin.dashboard') }}" class="text-xl font-bold tracking-wide">SIPANDAI</a>
-        <div class="flex items-center gap-3">
-            <span class="flex items-center gap-2 rounded-full border border-white/20 px-3 py-1.5 text-sm">
-                <span class="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-semibold text-indigo-950">{{ $inisial(auth()->user()->nama) }}</span>
-                {{ auth()->user()->nama }} <span class="text-white/60">&middot; Admin</span>
-            </span>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="rounded-lg px-3 py-1.5 text-sm text-white/80 hover:bg-white/10">Keluar</button>
-            </form>
-        </div>
-    </header>
-
-    <div class="flex">
-        <aside class="hidden w-56 shrink-0 border-r border-gray-200 bg-white p-4 md:block md:min-h-[calc(100vh-64px)]">
-            <nav class="space-y-1 text-sm">
-                <a href="{{ route('admin.dashboard') }}" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">Dashboard</a>
-                <a href="{{ route('admin.guru.index') }}" class="block rounded-lg bg-indigo-50 px-3 py-2 font-medium text-indigo-900">Kelola Akun Guru</a>
-            </nav>
-        </aside>
-
-        <main class="min-w-0 flex-1 p-6 lg:p-8">
+<x-layouts.app title="Kelola Akun Guru">
             <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-semibold">Kelola Akun Guru</h1>
@@ -202,8 +171,6 @@
             <p class="mt-6 rounded-xl border border-gray-200 bg-white px-6 py-4 text-xs text-gray-600">
                 Akun guru berstatus <strong>Aktif</strong> dapat login dan mencatat observasi untuk kelas yang diampunya.
             </p>
-        </main>
-    </div>
 
     {{-- Modal: Tambah Akun Guru --}}
     <dialog id="modal-tambah" dusk="modal-tambah" class="m-auto w-full max-w-lg rounded-2xl p-0 shadow-xl backdrop:bg-gray-900/50"
@@ -531,5 +498,4 @@
             document.querySelectorAll('dialog[data-buka-otomatis]').forEach((modal) => modal.showModal());
         })();
     </script>
-</body>
-</html>
+</x-layouts.app>

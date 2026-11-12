@@ -24,18 +24,22 @@ class GantiKataSandiTest extends DuskTestCase
                 ->type('login', 'ayurizki')
                 ->type('kata_sandi', 'Sementara#2026')
                 ->press('Masuk')
+                ->waitForLocation('/ganti-kata-sandi')
                 ->assertPathIs('/ganti-kata-sandi')
                 ->type('kata_sandi_baru', 'GuruAyu#2026')
                 ->type('kata_sandi_baru_confirmation', 'GuruAyu#2026')
                 ->press('Simpan kata sandi')
+                ->waitForLocation('/guru/dashboard')
                 ->assertPathIs('/guru/dashboard')
                 ->assertSee('Kata sandi berhasil diganti.')
                 ->assertSee('Selamat datang, Ayu Rizki')
                 ->press('Keluar')
+                ->waitForLocation('/login')
                 ->assertPathIs('/login')
                 ->type('login', 'ayurizki')
                 ->type('kata_sandi', 'GuruAyu#2026')
                 ->press('Masuk')
+                ->waitForLocation('/guru/dashboard')
                 ->assertPathIs('/guru/dashboard');
         });
     }

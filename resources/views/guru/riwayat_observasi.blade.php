@@ -177,17 +177,7 @@
         ? route('guru.data-anak.index')
         : route('guru.dashboard');
 @endphp
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Riwayat Observasi - SIPANDAI</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-[#F6F5FA] font-sans text-gray-900 antialiased">
-    {{-- Header dan sidebar disediakan oleh layout global (tugas PM). --}}
-    <main class="min-h-screen overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+<x-layouts.app title="Riwayat Observasi">
         <div class="mx-auto w-full max-w-6xl">
                     {{-- Breadcrumb --}}
                     <nav class="flex items-center gap-1.5 text-xs text-gray-500" aria-label="Breadcrumb">
@@ -375,7 +365,6 @@
                         </div>
                     @endif
         </div>
-    </main>
 
     @if ($totalObservasi > 0)
         <script>
@@ -524,5 +513,4 @@
             });
         </script>
     @endif
-</body>
-</html>
+</x-layouts.app>
