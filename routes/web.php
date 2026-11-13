@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DataMaster\AktivitasController;
 use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
+use App\Http\Controllers\Guru\AlternatifStrategiController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -53,10 +54,15 @@ Route::middleware('auth')->group(function () {
         ->middleware('peran:guru')
         ->name('guru.dashboard');
 
-    // PBI-15 Alternatif strategi (tampilan sementara, data masih dummy).
-    Route::view('/alternatif-strategi', 'alternatif-strategi.index')
-        ->middleware('peran:guru')
-        ->name('alternatif-strategi.index');
+    // PBI-15 Penyusunan Alternatif Strategi Berdasarkan Aturan.
+    Route::middleware('peran:guru')
+        ->prefix('guru/alternatif-strategi')
+        ->name('guru.alternatif-strategi.')
+        ->controller(AlternatifStrategiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/anak/{anak}', 'store')->name('store');
+        });
 
     // Pratinjau frontend PBI-11. Ganti dengan controller RiwayatObservasiController saat backend siap.
     Route::view('/guru/riwayat-observasi', 'guru.riwayat_observasi')

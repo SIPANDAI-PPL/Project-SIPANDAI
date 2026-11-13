@@ -58,7 +58,7 @@
 
   ```blade
   <x-layouts.app title="Kelola Akun Guru">
-      <h1 class="text-2xl font-semibold">Kelola Akun Guru</h1>
+      <h1 class="text-2xl font-semibold">Alternatif Strategi</h1>
       ...
   </x-layouts.app>
   ```

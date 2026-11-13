@@ -1,485 +1,356 @@
+{{-- PBI-15 Penyusunan Alternatif Strategi Berdasarkan Aturan. --}}
 @php
-    use Illuminate\Pagination\LengthAwarePaginator;
+    $kelasRespons = [
+        'terlibat_aktif' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+        'terlibat_dengan_pendampingan' => 'border-amber-200 bg-amber-50 text-amber-800',
+        'kurang_tertarik' => 'border-orange-200 bg-orange-50 text-orange-800',
+        'belum_terlibat' => 'border-red-200 bg-red-50 text-red-700',
+    ];
+    $kelasAvatar = [
+        'bg-amber-100 text-amber-800',
+        'bg-blue-100 text-blue-800',
+        'bg-emerald-100 text-emerald-800',
+        'bg-teal-100 text-teal-800',
+    ];
+    $kelasInput = 'block w-full rounded-lg border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200';
+    $kelasInputNormal = 'border-gray-300 focus:border-indigo-700';
+    $kelasInputSalah = 'border-red-500 focus:border-red-500';
 
-    /*
-    |--------------------------------------------------------------------------
-    | DATA (diisi langsung di view, tanpa controller)
-    |--------------------------------------------------------------------------
-    | Ganti isi array ini dengan data asli kapan saja.
-    */
-    $semuaKelas = ['TKA - Melati', 'TKA - Mawar'];
-
-    $semuaAnak = collect([
-        [
-            'nama' => 'Dedek', 'usia' => '4 tahun', 'kelas' => 'TKA - Melati',
-            'aspek' => 'Kognitif', 'prioritas' => 'Tinggi', 'status' => 'Aktif',
-            'kegiatan' => 'Menyusun Balok', 'respons' => 'Kurang tertarik', 'jumlah' => 3, 'minimal' => 3, 'tone' => 'warning',
-            'catatan' => 'Cenderung berpindah kegiatan setelah 2–3 menit dan memilih bermain sendiri.',
-            'strategi' => ['nama' => 'Media Balok Sesuai Minat Pokok', 'deskripsi' => 'Memakai balok dengan tema yang disukai anak, lalu dibimbing pelan-pelan.'],
-            'rekomendasi' => ['nama' => 'Variasi Balok Bercerita Menarik', 'deskripsi' => 'Gunakan balok bernarasi pendek dan beri kebebasan memilih alur cerita.'],
-        ],
-        [
-            'nama' => 'Citra Lestari', 'usia' => '4 tahun', 'kelas' => 'TKA - Melati',
-            'aspek' => 'Sosial Emosional', 'prioritas' => 'Sedang', 'status' => 'Aktif',
-            'kegiatan' => 'Bercerita Depan Kelas', 'respons' => 'Butuh stimulus berulang', 'jumlah' => 4, 'minimal' => 3, 'tone' => 'primary',
-            'catatan' => 'Tampak ragu dan menunduk saat diminta berbicara di depan teman.',
-            'strategi' => ['nama' => 'Cerita Terbuka Langsung', 'deskripsi' => 'Memberikan kesempatan bercerita secara langsung di depan kelas setiap hari.'],
-            'rekomendasi' => ['nama' => 'Kartu Cerita Bergambar Bertahap', 'deskripsi' => 'Fasilitasi stimulus bertahap, dari bercerita berpasangan lalu kelompok kecil.'],
-        ],
-        [
-            'nama' => 'Bimo Pratama', 'usia' => '4 tahun', 'kelas' => 'TKA - Melati',
-            'aspek' => 'Motorik', 'prioritas' => 'Sedang', 'status' => 'Aktif',
-            'kegiatan' => 'Permainan Gerak & Keseimbangan', 'respons' => 'Butuh pendampingan', 'jumlah' => 5, 'minimal' => 3, 'tone' => 'primary',
-            'catatan' => 'Sering kehilangan keseimbangan dan menolak melanjutkan permainan.',
-            'strategi' => ['nama' => 'Bantuan Penuh oleh Guru', 'deskripsi' => 'Guru memegang tangan anak sepanjang lintasan keseimbangan.'],
-            'rekomendasi' => ['nama' => 'Gradual Fading Bersama Teman Sebaya', 'deskripsi' => 'Kurangi bantuan guru secara bertahap dan libatkan teman sebaya.'],
-        ],
-        [
-            'nama' => 'Gita Amindya', 'usia' => '4 tahun', 'kelas' => 'TKA - Melati',
-            'aspek' => 'Bahasa', 'prioritas' => 'Tinggi', 'status' => 'Aktif',
-            'kegiatan' => 'Puzzle & Menyelesaikan Gambar', 'respons' => 'Durasi respons > 5 menit', 'jumlah' => 3, 'minimal' => 3, 'tone' => 'danger',
-            'catatan' => 'Tampak kesulitan memusatkan perhatian pada puzzle yang rumit.',
-            'strategi' => ['nama' => 'Penyelesaian Mandiri Sekaligus', 'deskripsi' => 'Memberikan seluruh puzzle sekaligus tanpa pembagian langkah.'],
-            'rekomendasi' => ['nama' => 'Metode Chunking & Timer Visual Cerita', 'deskripsi' => 'Bagi kegiatan jadi tahap kecil dan beri pengingat waktu visual.'],
-        ],
-        [
-            'nama' => 'Raka Aditya', 'usia' => '5 tahun', 'kelas' => 'TKA - Melati',
-            'aspek' => 'Bahasa', 'prioritas' => 'Rendah', 'status' => 'Aktif',
-            'kegiatan' => 'Mengenal Huruf', 'respons' => 'Kurang fokus', 'jumlah' => 2, 'minimal' => 3, 'tone' => 'warning',
-            'catatan' => 'Belum konsisten mengikuti kegiatan mengenal huruf.',
-            'strategi' => null,
-            'rekomendasi' => null,
-        ],
-        [
-            'nama' => 'Salsa Nabila', 'usia' => '5 tahun', 'kelas' => 'TKA - Melati',
-            'aspek' => 'Sosial Emosional', 'prioritas' => 'Sedang', 'status' => 'Aktif',
-            'kegiatan' => 'Bermain Peran', 'respons' => 'Menarik diri', 'jumlah' => 4, 'minimal' => 3, 'tone' => 'primary',
-            'catatan' => 'Cenderung menjauh saat bermain kelompok.',
-            'strategi' => ['nama' => 'Ajakan Verbal Guru', 'deskripsi' => 'Guru mengajak anak bergabung secara lisan.'],
-            'rekomendasi' => ['nama' => 'Peran Kecil dengan Teman Akrab', 'deskripsi' => 'Mulai dari peran sederhana bersama satu teman dekat.'],
-        ],
-        [
-            'nama' => 'Fajar Ramadhan', 'usia' => '4 tahun', 'kelas' => 'TKA - Mawar',
-            'aspek' => 'Motorik', 'prioritas' => 'Tinggi', 'status' => 'Aktif',
-            'kegiatan' => 'Menggunting Pola', 'respons' => 'Mudah frustrasi', 'jumlah' => 3, 'minimal' => 3, 'tone' => 'danger',
-            'catatan' => 'Berhenti saat gunting tidak mengikuti garis.',
-            'strategi' => ['nama' => 'Contoh Langsung dari Guru', 'deskripsi' => 'Guru mencontohkan menggunting di depan anak.'],
-            'rekomendasi' => ['nama' => 'Garis Tebal & Latihan Meremas Plastisin', 'deskripsi' => 'Perkuat otot jari sebelum menggunting pola tipis.'],
-        ],
-        [
-            'nama' => 'Nayla Putri', 'usia' => '5 tahun', 'kelas' => 'TKA - Mawar',
-            'aspek' => 'Kognitif', 'prioritas' => 'Sedang', 'status' => 'Aktif',
-            'kegiatan' => 'Mengelompokkan Warna', 'respons' => 'Ragu menjawab', 'jumlah' => 1, 'minimal' => 3, 'tone' => 'warning',
-            'catatan' => 'Masih terlihat ragu saat memilih kelompok warna.',
-            'strategi' => null,
-            'rekomendasi' => null,
-        ],
-    ]);
-
-    /*
-    |--------------------------------------------------------------------------
-    | FILTER
-    |--------------------------------------------------------------------------
-    */
-    $kelasDipilih   = request('kelas', $semuaKelas[0]);
-    $pencarian      = trim((string) request('q', ''));
-    $filterStatus   = request('status', 'Aktif');
-    $filterAspek    = request('aspek', 'Semua');
-    $filterPrioritas = request('prioritas', 'Semua');
-    $perPage        = 4;
-    $halaman        = max((int) request('page', 1), 1);
-
-    $anakKelas = $semuaAnak->where('kelas', $kelasDipilih)->values();
-
-    $anakTersaring = $anakKelas
-        ->when($filterStatus !== 'Semua', fn ($c) => $c->where('status', $filterStatus))
-        ->when($filterAspek !== 'Semua', fn ($c) => $c->where('aspek', $filterAspek))
-        ->when($filterPrioritas !== 'Semua', fn ($c) => $c->where('prioritas', $filterPrioritas))
-        ->when($pencarian !== '', function ($c) use ($pencarian) {
-            $kunci = mb_strtolower($pencarian);
-            return $c->filter(function ($a) use ($kunci) {
-                $teks = implode(' ', [
-                    data_get($a, 'nama', ''),
-                    data_get($a, 'kegiatan', ''),
-                    data_get($a, 'respons', ''),
-                    data_get($a, 'strategi.nama', ''),
-                    data_get($a, 'rekomendasi.nama', ''),
-                ]);
-                return mb_strpos(mb_strtolower($teks), $kunci) !== false;
-            });
-        })
-        ->values();
-
-    $paginator = new LengthAwarePaginator(
-        $anakTersaring->forPage($halaman, $perPage)->values(),
-        $anakTersaring->count(),
-        $perPage,
-        $halaman,
-        ['path' => url()->current(), 'query' => request()->query()]
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | RINGKASAN
-    |--------------------------------------------------------------------------
-    */
-    $jumlahPola        = $anakKelas->count();
-    $jumlahSaran       = $anakKelas->filter(fn ($a) => filled($a['rekomendasi']))->count();
-    $jumlahBelumCukup  = $anakKelas->filter(fn ($a) => blank($a['rekomendasi']))->count();
-
-    $daftarAspek = ['Semua', 'Kognitif', 'Bahasa', 'Motorik', 'Sosial Emosional'];
-    $daftarPrioritas = ['Semua', 'Tinggi', 'Sedang', 'Rendah'];
+    $labelKelas = fn ($kelas) => "{$kelas->kelompok} - {$kelas->nama_kelas}";
+    $anakLama = old('_anak');
 @endphp
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Alternatif Strategi</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-    <style>
-        :root {
-            --brand: #4f46e5;
-            --brand-soft: #eef2ff;
-            --brand-dark: #312e81;
-            --ink: #111827;
-            --muted: #6b7280;
-            --line: #e5e7eb;
-        }
-        body { background: #f5f6fa; color: var(--ink); font-size: .9rem; }
-        .page-wrap { max-width: 1140px; }
-        .text-muted-2 { color: var(--muted) !important; }
-        .breadcrumb-mini { font-size: .78rem; color: var(--muted); }
-        .breadcrumb-mini .current { color: var(--ink); font-weight: 500; }
-
-        .card-soft { background: #fff; border: 1px solid var(--line); border-radius: 14px; }
-
-        /* Statistik */
-        .stat-card { padding: 1rem 1.1rem; display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
-        .stat-label { font-size: .75rem; color: var(--muted); margin-bottom: .15rem; }
-        .stat-value { font-size: 1.85rem; font-weight: 700; line-height: 1.1; }
-        .stat-value small { font-size: .8rem; font-weight: 500; color: var(--muted); }
-        .stat-note { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
-        .stat-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0; }
-        .ic-amber { background: #fef3c7; color: #d97706; }
-        .ic-indigo { background: var(--brand-soft); color: var(--brand); }
-        .ic-gray { background: #f3f4f6; color: #4b5563; }
-
-        /* Pedoman */
-        .pedoman-box { border: 1px solid var(--line); border-radius: 12px; padding: .85rem 1rem; height: 100%; background: #fafafa; }
-        .pedoman-title { font-weight: 600; font-size: .8rem; display: flex; align-items: center; gap: .4rem; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .dot-amber { background: #f59e0b; } .dot-indigo { background: var(--brand); } .dot-green { background: #10b981; }
-        .pedoman-text { font-size: .76rem; color: var(--muted); margin: .35rem 0 0; line-height: 1.5; }
-
-        .btn-brand { background: var(--brand); border-color: var(--brand); color: #fff; }
-        .btn-brand:hover { background: #4338ca; border-color: #4338ca; color: #fff; }
-        .btn-outline-soft { border: 1px solid var(--brand); color: var(--brand); background: var(--brand-soft); font-size: .72rem; font-weight: 500; border-radius: 999px; padding: .2rem .7rem; }
-        .link-brand { color: var(--brand); font-size: .78rem; font-weight: 500; text-decoration: none; }
-        .link-brand:hover { text-decoration: underline; }
-
-        .badge-status { background: #dcfce7; color: #15803d; font-weight: 500; border-radius: 999px; font-size: .72rem; padding: .3rem .7rem; }
-
-        /* Form */
-        .form-control, .form-select { font-size: .82rem; border-color: #d1d5db; }
-        .form-control:focus, .form-select:focus { border-color: var(--brand); box-shadow: 0 0 0 .2rem rgba(79,70,229,.12); }
-        .filter-select { border-radius: 8px; padding-top: .3rem; padding-bottom: .3rem; width: auto; min-width: 130px; }
-
-        /* Tabel */
-        .tbl-head { background: #f9fafb; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: .68rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
-        .tbl-row { border-bottom: 1px solid var(--line); }
-        .tbl-row:last-child { border-bottom: 0; }
-        .mobile-label { font-size: .68rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: .4rem; }
-
-        .avatar { width: 36px; height: 36px; border-radius: 50%; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .85rem; }
-        .av-0 { background: #fef3c7; color: #b45309; }
-        .av-1 { background: #dbeafe; color: #1d4ed8; }
-        .av-2 { background: #dcfce7; color: #15803d; }
-        .av-3 { background: #ccfbf1; color: #0f766e; }
-
-        .pill { display: inline-block; font-size: .72rem; font-weight: 500; padding: .2rem .6rem; border-radius: 999px; margin-top: .35rem; }
-        .pill-warning { background: #fef3c7; color: #92400e; }
-        .pill-primary { background: #dbeafe; color: #1e40af; }
-        .pill-danger  { background: #fee2e2; color: #b91c1c; }
-
-        .box-strategi { background: #f9fafb; border: 1px solid #f0f0f2; border-radius: 10px; padding: .7rem .8rem; }
-        .box-rekom { background: var(--brand-soft); border-radius: 10px; padding: .7rem .8rem; }
-        .box-kosong { border: 1px dashed #d1d5db; border-radius: 10px; padding: .7rem .8rem; }
-        .box-title { font-size: .8rem; font-weight: 600; margin: 0; }
-        .box-text { font-size: .75rem; color: #4b5563; margin: .25rem 0 0; line-height: 1.5; }
-
-        .btn-tambah { width: 100%; border: 1px dashed #818cf8; color: var(--brand); background: transparent; border-radius: 8px; font-size: .75rem; font-weight: 500; padding: .35rem .6rem; margin-top: .55rem; transition: background .15s; }
-        .btn-tambah:hover { background: var(--brand-soft); }
-
-        .page-link { font-size: .78rem; color: var(--brand); }
-        .page-item.active .page-link { background: var(--brand); border-color: var(--brand); color: #fff; }
-        .pagination { margin-bottom: 0; }
-    </style>
-</head>
-<body>
-
-<div class="container page-wrap py-4">
-
-    {{-- ========== HEADER HALAMAN ========== --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-3 mb-3">
+<x-layouts.app title="Alternatif Strategi">
+    <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
-            <div class="breadcrumb-mini mb-1">
-                Rekomendasi <span class="mx-1">/</span> <span class="current">Alternatif Strategi</span>
-            </div>
-            <h1 class="h4 fw-bold mb-1">Alternatif Strategi</h1>
-            <p class="text-muted-2 mb-0" style="font-size:.82rem;">
-                Kelola dan tentukan alternatif strategi intervensi berdasarkan aturan dan pola observasi
-                <span class="mx-1">•</span> {{ $kelasDipilih }}
+            <h1 class="text-2xl font-semibold">Alternatif Strategi</h1>
+            <p class="mt-1 text-sm text-gray-600">
+                Saran strategi disusun dari aturan aktif dan catatan observasi, sebagai bahan pertimbangan guru.
+                @if ($kelas)
+                    <span class="mx-1">&bull;</span> {{ $labelKelas($kelas) }}
+                @endif
             </p>
         </div>
 
-        <form method="GET" action="{{ url()->current() }}">
-            <input type="hidden" name="q" value="{{ $pencarian }}">
-            <select name="kelas" class="form-select" style="min-width:170px;" onchange="this.form.submit()">
-                @foreach ($semuaKelas as $kelas)
-                    <option value="{{ $kelas }}" @selected($kelas === $kelasDipilih)>{{ $kelas }}</option>
+        <div class="flex flex-wrap items-center gap-3">
+            @if ($daftarKelas->count() > 1)
+                <form method="GET" action="{{ route('guru.alternatif-strategi.index') }}">
+                    <label for="pilih-kelas" class="sr-only">Pilih kelas</label>
+                    <select id="pilih-kelas" name="kelas" onchange="this.form.requestSubmit()"
+                        class="w-52 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        @foreach ($daftarKelas as $pilihan)
+                            <option value="{{ $pilihan->id }}" @selected($kelas?->id === $pilihan->id)>{{ $labelKelas($pilihan) }}</option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="sr-only">Tampilkan</button>
+                </form>
+            @endif
+            @if ($daftarAnak->isNotEmpty())
+                <button type="button" data-aksi="tambah" dusk="tombol-tambah-alternatif"
+                    class="rounded-lg bg-indigo-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-800">
+                    + Tambah Alternatif
+                </button>
+            @endif
+        </div>
+    </div>
+
+    @if (session('status'))
+        <p class="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" dusk="pesan-status">{{ session('status') }}</p>
+    @endif
+
+    @if (! $kelas)
+        <div class="mt-6 rounded-xl border border-gray-200 bg-white px-6 py-10 text-center">
+            <h2 class="font-medium">Belum ada kelas yang diampu</h2>
+            <p class="mt-1 text-sm text-gray-500">Hubungi admin untuk penugasan kelas.</p>
+        </div>
+    @else
+        {{-- Ringkasan --}}
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-gray-200 bg-white px-5 py-4">
+                <p class="text-xs text-gray-500">Pola respons tercatat</p>
+                <p class="mt-1 text-3xl font-bold" dusk="jumlah-pola">{{ $jumlahPola }}</p>
+                <p class="mt-1 text-xs text-gray-500">Cocok dengan aturan aktif</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white px-5 py-4">
+                <p class="text-xs text-gray-500">Saran tersedia</p>
+                <p class="mt-1 text-3xl font-bold text-indigo-900" dusk="jumlah-saran">{{ $jumlahSaran }}</p>
+                <p class="mt-1 text-xs text-gray-500">Siap ditinjau guru</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white px-5 py-4">
+                <p class="text-xs text-gray-500">Belum cukup data</p>
+                <p class="mt-1 text-3xl font-bold text-amber-700" dusk="jumlah-belum-cukup">{{ $jumlahBelumCukup }}</p>
+                <p class="mt-1 text-xs text-gray-500">Menunggu observasi tambahan</p>
+            </div>
+        </div>
+
+        {{-- Pedoman --}}
+        <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5">
+            <h2 class="text-sm font-semibold">Prinsip penyusunan saran</h2>
+            <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p class="flex items-center gap-2 text-xs font-semibold"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Berdasarkan aturan</p>
+                    <p class="mt-1 text-xs leading-relaxed text-gray-600">Saran disusun jika respons yang sama tercatat sebanyak minimal kejadian pada aturan aktif.</p>
+                </div>
+                <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p class="flex items-center gap-2 text-xs font-semibold"><span class="h-2 w-2 rounded-full bg-indigo-700"></span>Per anak</p>
+                    <p class="mt-1 text-xs leading-relaxed text-gray-600">Setiap anak dilihat dari catatan observasinya sendiri, tidak digabung dengan anak lain.</p>
+                </div>
+                <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p class="flex items-center gap-2 text-xs font-semibold"><span class="h-2 w-2 rounded-full bg-emerald-600"></span>Guru yang memutuskan</p>
+                    <p class="mt-1 text-xs leading-relaxed text-gray-600">Saran adalah bahan pertimbangan. Guru dapat menambah alternatif sendiri sesuai kondisi kelas.</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="GET" action="{{ route('guru.alternatif-strategi.index') }}" class="mt-6 flex flex-wrap gap-3">
+            <input type="hidden" name="kelas" value="{{ $kelas->id }}">
+            <label for="q" class="sr-only">Cari nama anak atau strategi</label>
+            <input id="q" name="q" type="search" value="{{ $cari }}" placeholder="Cari nama anak atau strategi"
+                class="min-w-60 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+
+            <label for="filter-aspek" class="sr-only">Filter aspek</label>
+            <select id="filter-aspek" name="aspek" onchange="this.form.requestSubmit()"
+                class="w-52 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                <option value="">Aspek: Semua</option>
+                @foreach ($pilihanAspek as $pilihan)
+                    <option value="{{ $pilihan->id }}" @selected($aspek === $pilihan->id)>Aspek: {{ $pilihan->nama }}</option>
                 @endforeach
             </select>
+
+            <button type="submit" class="rounded-lg bg-indigo-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-800">Cari</button>
+            @if ($cari !== '' || $aspek !== null)
+                <a href="{{ route('guru.alternatif-strategi.index', ['kelas' => $kelas->id]) }}"
+                    class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm hover:bg-gray-50">Reset</a>
+            @endif
         </form>
-    </div>
 
-    {{-- ========== RINGKASAN ========== --}}
-    <div class="row g-3 mb-3">
-        <div class="col-12 col-md-4">
-            <div class="card-soft stat-card h-100">
-                <div>
-                    <div class="stat-label">Anak dengan pola</div>
-                    <div class="stat-value">{{ $jumlahPola }} <small>anak</small></div>
-                    <div class="stat-note">Ambang pemicu terpenuhi</div>
-                </div>
-                <div class="stat-icon ic-amber"><i class="bi bi-exclamation-triangle"></i></div>
-            </div>
-        </div>
-        <div class="col-12 col-md-4">
-            <div class="card-soft stat-card h-100">
-                <div>
-                    <div class="stat-label">Saran tersedia</div>
-                    <div class="stat-value" style="color:var(--brand);">{{ $jumlahSaran }} <small>strategi</small></div>
-                    <div class="stat-note">Siap ditinjau guru</div>
-                </div>
-                <div class="stat-icon ic-indigo"><i class="bi bi-lightbulb"></i></div>
-            </div>
-        </div>
-        <div class="col-12 col-md-4">
-            <div class="card-soft stat-card h-100">
-                <div>
-                    <div class="stat-label">Belum cukup data</div>
-                    <div class="stat-value" style="color:#d97706;">{{ $jumlahBelumCukup }} <small>anak</small></div>
-                    <div class="stat-note">Menunggu observasi tambahan</div>
-                </div>
-                <div class="stat-icon ic-gray"><i class="bi bi-clock-history"></i></div>
-            </div>
-        </div>
-    </div>
-
-    {{-- ========== PEDOMAN ========== --}}
-    <div class="card-soft p-3 p-md-4 mb-3">
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start gap-2 mb-3">
-            <div>
-                <div class="fw-semibold" style="font-size:.9rem;">Ringkasan Pedoman &amp; Standar Intervensi PAUD</div>
-                <div class="text-muted-2" style="font-size:.75rem;">Prinsip penyusunan alternatif strategi berbasis data observasi.</div>
-            </div>
-            <button type="button" class="btn btn-outline-soft align-self-start">Kustomisasi Pedoman</button>
-        </div>
-
-        <div class="row g-3">
-            <div class="col-12 col-md-4">
-                <div class="pedoman-box">
-                    <div class="pedoman-title"><span class="dot dot-amber"></span> Aturan Pemicu Pola</div>
-                    <p class="pedoman-text">Evaluasi hanya dimulai jika respons yang sama muncul minimal 3 kali dalam periode observasi yang ditentukan.</p>
-                </div>
-            </div>
-            <div class="col-12 col-md-4">
-                <div class="pedoman-box">
-                    <div class="pedoman-title"><span class="dot dot-indigo"></span> Prinsip Diferensiasi</div>
-                    <p class="pedoman-text">Pendekatan berbeda untuk setiap anak sesuai kebutuhan, minat, dan perkembangannya masing-masing.</p>
-                </div>
-            </div>
-            <div class="col-12 col-md-4">
-                <div class="pedoman-box">
-                    <div class="pedoman-title"><span class="dot dot-green"></span> Fleksibilitas Alternatif</div>
-                    <p class="pedoman-text">Guru dapat menambah atau mengubah alternatif strategi sesuai kondisi nyata di kelas dan RPP harian.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="text-end mt-3">
-            <a href="#" class="link-brand">Lihat Selengkapnya <i class="bi bi-chevron-right"></i></a>
-        </div>
-    </div>
-
-    {{-- ========== DAFTAR RUMUSAN ========== --}}
-    <div class="card-soft overflow-hidden">
-
-        <div class="p-3 p-md-4 pb-3">
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
-                <h2 class="h6 fw-semibold mb-0">Daftar Rumusan Aturan Intervensi</h2>
-                <span class="badge-status align-self-start"><i class="bi bi-check-circle-fill me-1"></i>Status: Otomatis Aktif</span>
+        <div class="mt-4 rounded-xl border border-gray-200 bg-white">
+            <div class="flex items-center gap-3 border-b border-gray-100 px-6 py-4">
+                <h2 class="font-medium">Daftar Pola Respons dan Saran</h2>
+                <span class="rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-900">{{ $daftarBaris->total() }} baris</span>
             </div>
 
-            <form method="GET" action="{{ url()->current() }}">
-                <input type="hidden" name="kelas" value="{{ $kelasDipilih }}">
+            <div class="hidden border-b border-gray-100 bg-gray-50 px-6 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:grid lg:grid-cols-4 lg:gap-4">
+                <div>Anak</div>
+                <div>Pola respons</div>
+                <div>Strategi yang digunakan</div>
+                <div>Saran untuk dipertimbangkan</div>
+            </div>
 
-                <div class="input-group mb-3">
-                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                    <input type="search" name="q" value="{{ $pencarian }}" class="form-control"
-                           placeholder="Cari nama anak atau strategi...">
-                    <button class="btn btn-brand" type="submit">Cari</button>
-                    @if ($pencarian !== '' || $filterAspek !== 'Semua' || $filterPrioritas !== 'Semua' || $filterStatus !== 'Aktif')
-                        <a href="{{ url()->current() }}?kelas={{ urlencode($kelasDipilih) }}" class="btn btn-outline-secondary">Reset</a>
-                    @endif
-                </div>
-
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <select name="status" class="form-select filter-select" onchange="this.form.submit()">
-                        @foreach (['Aktif', 'Semua'] as $opsi)
-                            <option value="{{ $opsi }}" @selected($filterStatus === $opsi)>Status: {{ $opsi }}</option>
-                        @endforeach
-                    </select>
-
-                    <select name="aspek" class="form-select filter-select" onchange="this.form.submit()">
-                        @foreach ($daftarAspek as $opsi)
-                            <option value="{{ $opsi }}" @selected($filterAspek === $opsi)>Aspek: {{ $opsi }}</option>
-                        @endforeach
-                    </select>
-
-                    <select class="form-select filter-select" disabled>
-                        <option>Ambang Pemicu: ≥ 3 observasi</option>
-                    </select>
-
-                    <select name="prioritas" class="form-select filter-select" onchange="this.form.submit()">
-                        @foreach ($daftarPrioritas as $opsi)
-                            <option value="{{ $opsi }}" @selected($filterPrioritas === $opsi)>Prioritas: {{ $opsi }}</option>
-                        @endforeach
-                    </select>
-
-                    <span class="ms-lg-auto text-muted-2" style="font-size:.75rem;">
-                        Menampilkan {{ $paginator->count() }} dari {{ $paginator->total() }} pola pilihan
-                    </span>
-                </div>
-            </form>
-        </div>
-
-        {{-- Header tabel (desktop) --}}
-        <div class="tbl-head d-none d-lg-flex px-4 py-2">
-            <div class="col-lg-3 pe-3">Anak</div>
-            <div class="col-lg-3 pe-3">Pola perilaku anak</div>
-            <div class="col-lg-3 pe-3">Strategi yang digunakan</div>
-            <div class="col-lg-3">Rekomendasi strategi</div>
-        </div>
-
-        {{-- Baris --}}
-        @forelse ($paginator as $i => $anak)
-            @php
-                $strategi    = $anak['strategi'];
-                $rekomendasi = $anak['rekomendasi'];
-            @endphp
-
-            <div class="tbl-row px-3 px-md-4 py-3">
-                <div class="row g-3">
-
-                    {{-- Anak --}}
-                    <div class="col-12 col-lg-3">
-                        <div class="mobile-label d-lg-none">Anak</div>
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="avatar av-{{ $i % 4 }}">{{ mb_strtoupper(mb_substr($anak['nama'], 0, 1)) }}</div>
-                            <div class="min-w-0">
-                                <div class="fw-semibold" style="font-size:.85rem;">{{ $anak['nama'] }}</div>
-                                <div class="text-muted-2" style="font-size:.74rem;">{{ $anak['usia'] }} <span class="mx-1">•</span> {{ $anak['kelas'] }}</div>
+            <ul class="divide-y divide-gray-100">
+                @forelse ($daftarBaris as $i => $baris)
+                    @php
+                        $anak = $baris['anak'];
+                        $saran = $baris['saran'];
+                        $aturan = $baris['aturan'] ?? null;
+                    @endphp
+                    <li class="grid gap-4 px-6 py-5 lg:grid-cols-4" dusk="baris-{{ $baris['jenis'] }}-{{ $anak->id }}-{{ $aturan?->id ?? $saran?->id }}">
+                        {{-- Anak --}}
+                        <div>
+                            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">Anak</p>
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold {{ $kelasAvatar[$i % 4] }}">{{ mb_strtoupper(mb_substr($anak->nama, 0, 1)) }}</span>
+                                <div class="min-w-0">
+                                    <p class="truncate text-sm font-semibold">{{ $anak->nama }}</p>
+                                    <p class="text-xs text-gray-500">{{ $anak->tanggal_lahir->age }} tahun <span class="mx-1">&bull;</span> {{ $labelKelas($kelas) }}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {{-- Pola --}}
-                    <div class="col-12 col-lg-3">
-                        <div class="mobile-label d-lg-none">Pola perilaku anak</div>
-                        <div class="fw-semibold" style="font-size:.82rem;">{{ $anak['kegiatan'] }}</div>
-                        <span class="pill pill-{{ $anak['tone'] }}">
-                            <i class="bi bi-circle-fill me-1" style="font-size:.4rem;vertical-align:middle;"></i>{{ $anak['respons'] }} ({{ $anak['jumlah'] }}x)
-                        </span>
-                        @if ($anak['catatan'])
-                            <p class="text-muted-2 mt-2 mb-0" style="font-size:.74rem;line-height:1.5;">{{ $anak['catatan'] }}</p>
-                        @endif
-                    </div>
+                        @if ($baris['jenis'] === 'pola')
+                            {{-- Pola respons --}}
+                            <div>
+                                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">Pola respons</p>
+                                <span class="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium {{ $kelasRespons[$aturan->respons_pemicu->value] }}">
+                                    {{ $aturan->respons_pemicu->label() }} ({{ $baris['jumlah'] }}x)
+                                </span>
+                                <p class="mt-2 text-xs text-gray-600">Aspek: {{ $aturan->aspek?->nama ?? 'Semua aspek' }}</p>
+                                <p class="mt-1 text-xs text-gray-500">Observasi terakhir: {{ $baris['tanggal']->last()->format('d/m/Y') }}</p>
+                            </div>
 
-                    {{-- Strategi digunakan --}}
-                    <div class="col-12 col-lg-3">
-                        <div class="mobile-label d-lg-none">Strategi yang digunakan</div>
-                        @if ($strategi)
-                            <div class="box-strategi">
-                                <p class="box-title">{{ $strategi['nama'] }}</p>
-                                <p class="box-text">{{ $strategi['deskripsi'] }}</p>
+                            {{-- Strategi yang digunakan --}}
+                            <div>
+                                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">Strategi yang digunakan</p>
+                                <div class="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                    <p class="text-sm font-semibold">{{ $aturan->strategiAsal->nama }}</p>
+                                    @if ($aturan->strategiAsal->deskripsi)
+                                        <p class="mt-1 text-xs leading-relaxed text-gray-600">{{ $aturan->strategiAsal->deskripsi }}</p>
+                                    @endif
+                                </div>
                             </div>
                         @else
-                            <div class="box-kosong">
-                                <p class="box-text mt-0">Belum ada informasi strategi yang digunakan.</p>
+                            <div>
+                                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">Pola respons</p>
+                                <span class="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-900">Ditambahkan guru</span>
+                                <p class="mt-2 text-xs text-gray-500">Ditambahkan {{ $saran->dibuat_pada?->format('d/m/Y') }}</p>
+                            </div>
+                            <div>
+                                <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">Strategi yang digunakan</p>
+                                <div class="rounded-lg border border-dashed border-gray-300 px-3 py-2.5">
+                                    <p class="text-xs text-gray-500">Tidak terkait aturan.</p>
+                                </div>
                             </div>
                         @endif
-                    </div>
 
-                    {{-- Rekomendasi --}}
-                    <div class="col-12 col-lg-3">
-                        <div class="mobile-label d-lg-none">Rekomendasi strategi</div>
-                        @if ($rekomendasi)
-                            <div class="box-rekom">
-                                <p class="box-title" style="color:var(--brand-dark);">{{ $rekomendasi['nama'] }}</p>
-                                <p class="box-text">{{ $rekomendasi['deskripsi'] }}</p>
-                            </div>
+                        {{-- Saran --}}
+                        <div>
+                            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:hidden">Saran untuk dipertimbangkan</p>
+                            @if ($saran)
+                                <div class="rounded-lg bg-indigo-50 px-3 py-2.5" dusk="saran-{{ $saran->id }}">
+                                    <p class="text-sm font-semibold text-indigo-900">{{ $saran->strategi->nama }}</p>
+                                    @if ($saran->strategi->deskripsi)
+                                        <p class="mt-1 text-xs leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
+                                    @endif
+                                    @if ($saran->dasar_saran)
+                                        <p class="mt-2 border-t border-indigo-100 pt-2 text-xs leading-relaxed text-gray-600">
+                                            <span class="font-medium">{{ $baris['jenis'] === 'pola' ? 'Dasar saran:' : 'Catatan:' }}</span> {{ $saran->dasar_saran }}
+                                        </p>
+                                    @endif
+                                </div>
+                            @else
+                                <div class="rounded-lg border border-dashed border-gray-300 px-3 py-2.5" dusk="belum-ada-alternatif">
+                                    <p class="text-sm font-semibold">Belum ada alternatif</p>
+                                    <p class="mt-1 text-xs leading-relaxed text-gray-600">
+                                        @if ($baris['jumlah'] < $aturan->minimal_kejadian)
+                                            Baru tercatat {{ $baris['jumlah'] }} dari minimal {{ $aturan->minimal_kejadian }} kejadian. Saran disusun setelah jumlah observasi mencukupi.
+                                        @else
+                                            Strategi alternatif pada aturan ini sedang nonaktif.
+                                        @endif
+                                    </p>
+                                </div>
+                            @endif
+
+                            <button type="button" data-aksi="tambah" data-anak="{{ $anak->id }}"
+                                class="mt-2 w-full rounded-lg border border-dashed border-indigo-300 px-3 py-1.5 text-xs font-medium text-indigo-900 hover:bg-indigo-50">
+                                + Tambah Alternatif
+                            </button>
+                        </div>
+                    </li>
+                @empty
+                    <li class="px-6 py-10 text-center text-sm text-gray-500">
+                        @if ($cari !== '' || $aspek !== null)
+                            Tidak ada data yang sesuai dengan pencarian.
                         @else
-                            <div class="box-kosong">
-                                <p class="box-title">Belum ada alternatif</p>
-                                <p class="box-text">
-                                    Data observasi belum cukup ({{ $anak['jumlah'] }} dari minimal {{ $anak['minimal'] }} kejadian).
-                                    Saran akan muncul setelah syarat terpenuhi.
-                                </p>
-                            </div>
+                            Belum ada pola respons yang cocok dengan aturan aktif di kelas ini.
                         @endif
+                    </li>
+                @endforelse
+            </ul>
 
-                        <button type="button" class="btn-tambah">
-                            <i class="bi bi-plus-lg me-1"></i>Tambah Alternatif
-                        </button>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-6 py-4 text-xs text-gray-500">
+                <p>
+                    @if ($daftarBaris->total() > 0)
+                        Menampilkan <strong>{{ $daftarBaris->firstItem() }}-{{ $daftarBaris->lastItem() }}</strong> dari <strong>{{ $daftarBaris->total() }}</strong> baris
+                    @else
+                        Menampilkan 0 baris
+                    @endif
+                </p>
+                <div class="flex items-center gap-2">
+                    @if ($daftarBaris->onFirstPage())
+                        <span class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-300">Sebelumnya</span>
+                    @else
+                        <a href="{{ $daftarBaris->previousPageUrl() }}" class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Sebelumnya</a>
+                    @endif
+                    <span class="rounded-lg bg-indigo-900 px-3 py-1.5 font-medium text-white">{{ $daftarBaris->currentPage() }}</span>
+                    @if ($daftarBaris->hasMorePages())
+                        <a href="{{ $daftarBaris->nextPageUrl() }}" class="rounded-lg border border-gray-300 px-3 py-1.5 hover:bg-gray-50">Selanjutnya</a>
+                    @else
+                        <span class="rounded-lg border border-gray-200 px-3 py-1.5 text-gray-300">Selanjutnya</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <p class="mt-6 rounded-xl border border-gray-200 bg-white px-6 py-4 text-xs text-gray-600">
+            Saran ini bukan penilaian terhadap anak. Saran membantu guru menimbang strategi lain, dan keputusan tetap di tangan guru.
+        </p>
+
+        {{-- Dialog: Tambah alternatif sendiri --}}
+        <dialog id="dialog-alternatif" dusk="dialog-alternatif"
+            class="m-auto w-full max-w-lg rounded-2xl p-0 shadow-xl backdrop:bg-gray-900/50"
+            data-url-template="{{ route('guru.alternatif-strategi.store', ['anak' => '__ANAK__']) }}"
+            @if ($anakLama && $errors->any()) data-buka-otomatis @endif>
+            <form method="POST" data-form-alternatif
+                action="{{ $anakLama ? route('guru.alternatif-strategi.store', ['anak' => $anakLama]) : '' }}">
+                @csrf
+                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                    <h2 class="text-lg font-semibold">Tambah Alternatif Strategi</h2>
+                    <button type="button" data-tutup class="text-xl leading-none text-gray-500 hover:text-gray-800" aria-label="Tutup">&times;</button>
+                </div>
+
+                <div class="space-y-4 px-6 py-5">
+                    <div>
+                        <label for="_anak" class="block text-sm font-medium">Anak</label>
+                        <select id="_anak" name="_anak" required data-pilih-anak dusk="pilih-anak"
+                            class="{{ $kelasInput }} {{ $kelasInputNormal }} mt-1">
+                            <option value="">Pilih anak</option>
+                            @foreach ($daftarAnak as $pilihan)
+                                <option value="{{ $pilihan->id }}" @selected((string) $anakLama === (string) $pilihan->id)>{{ $pilihan->nama }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
+                    <div>
+                        <label for="strategi_id" class="block text-sm font-medium">Strategi</label>
+                        <select id="strategi_id" name="strategi_id" required dusk="pilih-strategi"
+                            class="{{ $kelasInput }} mt-1 {{ $errors->has('strategi_id') ? $kelasInputSalah : $kelasInputNormal }}">
+                            <option value="">Pilih strategi</option>
+                            @foreach ($pilihanStrategi as $pilihan)
+                                <option value="{{ $pilihan->id }}" @selected((string) old('strategi_id') === (string) $pilihan->id)>{{ $pilihan->nama }}</option>
+                            @endforeach
+                        </select>
+                        @error('strategi_id')
+                            <p class="mt-1 text-xs text-red-600" dusk="salah-strategi">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="catatan" class="block text-sm font-medium">Catatan <span class="font-normal text-gray-400">(opsional)</span></label>
+                        <textarea id="catatan" name="catatan" rows="3" maxlength="1000"
+                            placeholder="Contoh: dicoba saat kegiatan pagi bersama kelompok kecil."
+                            class="{{ $kelasInput }} mt-1 {{ $errors->has('catatan') ? $kelasInputSalah : $kelasInputNormal }}">{{ old('catatan') }}</textarea>
+                        @error('catatan')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
-            </div>
-        @empty
-            <div class="text-center px-4 py-5">
-                <div class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-circle bg-light" style="width:56px;height:56px;">
-                    <i class="bi bi-file-earmark-text text-muted fs-4"></i>
+
+                <div class="flex justify-end gap-3 border-t border-gray-100 px-6 py-4">
+                    <button type="button" data-tutup class="rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">Batal</button>
+                    <button type="submit" dusk="simpan-alternatif" class="rounded-lg bg-indigo-900 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800">Simpan</button>
                 </div>
-                @if ($pencarian !== '')
-                    <h3 class="h6 fw-semibold">Data tidak ditemukan</h3>
-                    <p class="text-muted-2 mb-0" style="font-size:.82rem;">Tidak ada anak atau strategi yang sesuai dengan pencarian "{{ $pencarian }}".</p>
-                @else
-                    <h3 class="h6 fw-semibold">Belum ada pola respons</h3>
-                    <p class="text-muted-2 mb-0" style="font-size:.82rem;">Belum ada pola respons yang perlu ditinjau di kelas ini.</p>
-                @endif
-            </div>
-        @endforelse
+            </form>
+        </dialog>
 
-        {{-- Footer --}}
-        @if ($paginator->total() > 0)
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 px-3 px-md-4 py-3 border-top">
-                <span class="text-muted-2" style="font-size:.75rem;">
-                    Menampilkan {{ $paginator->firstItem() }}–{{ $paginator->lastItem() }} dari {{ $paginator->total() }} rumusan tersimpan
-                </span>
-                @if ($paginator->hasPages())
-                    {{ $paginator->links('pagination::bootstrap-5') }}
-                @endif
-            </div>
-        @endif
+        <script>
+            (() => {
+                const dialog = document.getElementById('dialog-alternatif');
+                const form = dialog.querySelector('[data-form-alternatif]');
+                const pilihAnak = dialog.querySelector('[data-pilih-anak]');
 
-    </div>
-</div>
+                // Alamat simpan mengikuti anak yang dipilih.
+                const aturAction = () => {
+                    form.action = pilihAnak.value ? dialog.dataset.urlTemplate.replace('__ANAK__', pilihAnak.value) : '';
+                };
+                pilihAnak.addEventListener('change', aturAction);
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+                document.querySelectorAll('[data-aksi="tambah"]').forEach((tombol) => {
+                    tombol.addEventListener('click', () => {
+                        form.reset();
+                        pilihAnak.value = tombol.dataset.anak ?? '';
+                        aturAction();
+                        dialog.showModal();
+                    });
+                });
+
+                dialog.querySelectorAll('[data-tutup]').forEach((tombol) => tombol.addEventListener('click', () => dialog.close()));
+                dialog.addEventListener('click', (event) => {
+                    if (event.target === dialog) dialog.close();
+                });
+
+                if ('bukaOtomatis' in dialog.dataset) {
+                    dialog.showModal();
+                }
+            })();
+        </script>
+    @endif
+</x-layouts.app>

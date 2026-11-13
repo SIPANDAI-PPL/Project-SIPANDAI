@@ -34,6 +34,6 @@ return [
         // PBI-11
         ['label' => 'Riwayat Observasi', 'rute' => 'guru.riwayat-observasi', 'aktif' => 'guru.riwayat-observasi*'],
         // PBI-15
-        ['label' => 'Alternatif Strategi', 'rute' => 'alternatif-strategi.index', 'aktif' => 'alternatif-strategi.*'],
+        ['label' => 'Alternatif Strategi', 'rute' => 'guru.alternatif-strategi.index', 'aktif' => 'guru.alternatif-strategi.*'],
     ],
 ];
