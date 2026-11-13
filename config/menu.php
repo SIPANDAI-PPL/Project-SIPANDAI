@@ -31,8 +31,8 @@ return [
         ['label' => 'Aktivitas & Strategi', 'rute' => 'data-master.aktivitas.index', 'aktif' => 'data-master.*'],
         // PBI-7
         ['label' => 'Observasi', 'rute' => 'guru.observasi.index', 'aktif' => 'guru.observasi.*'],
-        // PBI-11
-        ['label' => 'Riwayat Observasi', 'rute' => 'guru.riwayat-observasi', 'aktif' => 'guru.riwayat-observasi*'],
+        // PBI-11 Riwayat Observasi tidak masuk sidebar: halaman ini per anak
+        // (butuh parameter anak), jadi dibuka dari Data Anak.
         // PBI-15
         ['label' => 'Alternatif Strategi', 'rute' => 'alternatif-strategi.index', 'aktif' => 'alternatif-strategi.*'],
     ],
