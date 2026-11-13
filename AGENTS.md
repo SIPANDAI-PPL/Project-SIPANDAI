@@ -48,6 +48,32 @@
 
 - Baris pertama di dalam class controller berisi komentar fitur, contoh: `// Fitur: PBI-1 Kelola Akun Guru dan Reset Kata Sandi`.
 
+## Layout
+
+- Semua halaman setelah login memakai layout bersama `resources/views/components/layouts/app.blade.php` (header + sidebar). Jangan membuat header, sidebar, atau tombol Keluar sendiri.
+
+- Halaman login dan ganti kata sandi tidak memakai layout.
+
+- Cara membungkus halaman: variabel `@php` boleh tetap di atas, lalu seluruh isi halaman (termasuk `<dialog>` dan `<script>`) ditaruh di dalam komponen. Tanpa `<!DOCTYPE>`, `<head>`, `<body>`, atau `<main>`; semua itu sudah disediakan layout.
+
+  ```blade
+  <x-layouts.app title="Kelola Akun Guru">
+      <h1 class="text-2xl font-semibold">Kelola Akun Guru</h1>
+      ...
+  </x-layouts.app>
+  ```
+
+  Judul dinamis memakai `:title="$judul"`. Judul tab menjadi `<judul> - SIPANDAI`.
+
+- Daftar menu sidebar per peran ada di satu tempat: `config/menu.php`. Untuk menambah menu, tambahkan item di peran yang sesuai:
+
+  ```php
+  ['label' => 'Data Anak', 'rute' => 'guru.anak.index', 'aktif' => 'guru.anak.*'],
+  ```
+
+  - `rute`: nama rute tujuan. Item hanya tampil jika rute itu sudah terdaftar (`Route::has`), jadi aman ditambahkan sebelum branch PBI terkait di-merge.
+  - `aktif`: pola `request()->routeIs()` untuk menandai menu aktif (`aria-current="page"`). Boleh string atau array.
+
 ## Alur kerja
 
 - Setiap tugas mengacu ke satu issue Jira (`PBI-x`). Baca kriteria penerimaan dan test case di issue itu.

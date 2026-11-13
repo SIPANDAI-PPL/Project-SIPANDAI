@@ -24,9 +24,11 @@ class LoginTest extends DuskTestCase
                 ->type('login', 'miastacia')
                 ->type('kata_sandi', 'GuruMia#2026')
                 ->press('Masuk')
+                ->waitForLocation('/guru/dashboard')
                 ->assertPathIs('/guru/dashboard')
                 ->assertSee('Selamat datang, Mia Stacia')
                 ->press('Keluar')
+                ->waitForLocation('/login')
                 ->assertPathIs('/login');
         });
     }
@@ -43,6 +45,8 @@ class LoginTest extends DuskTestCase
                 ->type('login', 'dinanugraha')
                 ->type('kata_sandi', 'GuruDina#2026')
                 ->press('Masuk')
+                // Path tetap /login, jadi tunggu pesan dari halaman hasil redirect.
+                ->waitForText('Akun tidak aktif, hubungi admin.')
                 ->assertPathIs('/login')
                 ->assertSee('Akun tidak aktif, hubungi admin.');
         });

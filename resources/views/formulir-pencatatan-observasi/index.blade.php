@@ -1,50 +1,41 @@
 @php
     /*
      |--------------------------------------------------------------------------
-     | DATA CONTOH
+     | DATA CONTOH (UI saja)
      |--------------------------------------------------------------------------
      | Ganti variabel di bawah dengan data dari controller/database.
-     | Hapus key 'default' pada $indikator jika ingin pilihan awal kosong.
      */
-    $guru = auth()->user()->nama ?? 'Mia Stacia';
+    $guru         = auth()->user()->nama ?? 'Mia Stacia';
     $tahunAjaran  = '2024/2025';
     $semester     = 'Ganjil';
-    $statusAjaran = 'Aktif';
 
     $kelasList = [
         ['id' => 1, 'nama' => 'Kelas A'],
         ['id' => 2, 'nama' => 'Kelas B'],
     ];
 
-    $anakList = [
-        ['id' => 1, 'nama' => 'Dedek Piplup',  'kelas_id' => 1],
-        ['id' => 2, 'nama' => 'Kakak Pikachu', 'kelas_id' => 1],
-        ['id' => 3, 'nama' => 'Adik Eevee',    'kelas_id' => 2],
+    $tahunList    = ['2024/2025', '2023/2024'];
+    $semesterList = ['Ganjil', 'Genap'];
+    $urutList     = ['terbaru' => 'Terbaru', 'terlama' => 'Terlama', 'nama' => 'Nama anak (A-Z)'];
+
+    $observasi = [
+        ['id' => 1, 'kode' => 'OBS-001', 'anak' => 'Dedek Piplup', 'kelas' => 'Kelas A', 'tanggal' => '16 Jul 2024', 'kegiatan' => 'Bermain Bebas di Sentra Balok',  'guru' => 'Mia Stacia', 'status' => 'Tersimpan'],
+        ['id' => 2, 'kode' => 'OBS-002', 'anak' => 'Alya Putri',   'kelas' => 'Kelas A', 'tanggal' => '16 Jul 2024', 'kegiatan' => 'Menggunting dan Menempel',        'guru' => 'Mia Stacia', 'status' => 'Tersimpan'],
+        ['id' => 3, 'kode' => 'OBS-003', 'anak' => 'Bima Pratama', 'kelas' => 'Kelas B', 'tanggal' => '16 Jul 2024', 'kegiatan' => 'Bercerita tentang Keluarga',      'guru' => 'Mia Stacia', 'status' => 'Tersimpan'],
+        ['id' => 4, 'kode' => 'OBS-004', 'anak' => 'Nara Safira',  'kelas' => 'Kelas B', 'tanggal' => '15 Jul 2024', 'kegiatan' => 'Mengenal Angka dan Bentuk',      'guru' => 'Mia Stacia', 'status' => 'Tersimpan'],
+        ['id' => 5, 'kode' => 'OBS-005', 'anak' => 'Dedek Piplup', 'kelas' => 'Kelas A', 'tanggal' => '15 Jul 2024', 'kegiatan' => 'Bermain Peran di Sentra Drama',  'guru' => 'Mia Stacia', 'status' => 'Tersimpan'],
+        ['id' => 6, 'kode' => 'OBS-006', 'anak' => 'Alya Putri',   'kelas' => 'Kelas A', 'tanggal' => '15 Jul 2024', 'kegiatan' => 'Melukis dengan Jari',            'guru' => 'Mia Stacia', 'status' => 'Tersimpan'],
     ];
 
-    $kegiatanList = [
-        'Bermain Bebas di Sentra Balok',
-        'Sentra Persiapan',
-        'Sentra Seni dan Kreativitas',
-        'Sentra Imtaq',
-        'Circle Time',
-    ];
+    $total        = count($observasi);
+    $anakUnik     = collect($observasi)->pluck('anak')->unique()->count();
+    $kelasUnik    = collect($observasi)->pluck('kelas')->unique()->count();
+    $kelasNamaStr = collect($observasi)->pluck('kelas')->unique()->sort()->implode(' dan ');
 
-    $kategori = [
-        'BSB' => 'Berkembang Sangat Baik',
-        'BSH' => 'Berkembang Sesuai Harapan',
-        'MB'  => 'Mulai Berkembang',
-        'BB'  => 'Belum Berkembang',
-    ];
-
-    $indikator = [
-        ['id' => 1, 'kode' => 'NAM', 'tone' => 'ind', 'judul' => 'Mengenal nilai agama dan moral',          'deskripsi' => 'Anak berdoa sebelum dan sesudah kegiatan',                         'default' => 'BSB'],
-        ['id' => 2, 'kode' => 'FM',  'tone' => 'grn', 'judul' => 'Motorik kasar — keseimbangan tubuh',       'deskripsi' => 'Anak berjalan di atas papan titian tanpa terjatuh',                'default' => 'BSH'],
-        ['id' => 3, 'kode' => 'FM',  'tone' => 'grn', 'judul' => 'Motorik halus — koordinasi tangan-mata',   'deskripsi' => 'Anak menyusun balok dengan rapi dan presisi',                      'default' => 'MB'],
-        ['id' => 4, 'kode' => 'KOG', 'tone' => 'blu', 'judul' => 'Kemampuan berpikir simbolik',              'deskripsi' => 'Anak mengenal konsep angka 1–10 dan bentuk geometri',              'default' => 'BSH'],
-        ['id' => 5, 'kode' => 'BHS', 'tone' => 'org', 'judul' => 'Kemampuan berbicara dan bercerita',        'deskripsi' => 'Anak mampu menceritakan kembali pengalaman dengan kalimat lengkap', 'default' => 'BB'],
-        ['id' => 6, 'kode' => 'SE',  'tone' => 'ind', 'judul' => 'Sosial-emosional — kerja sama',            'deskripsi' => 'Anak mau berbagi dan bekerja sama dengan teman',                   'default' => 'BSB'],
-    ];
+    // Helper URL: aman dipakai walau route belum dibuat (jatuh ke '#')
+    $url = fn (string $name, $param = null) => \Illuminate\Support\Facades\Route::has($name)
+        ? ($param !== null ? route($name, $param) : route($name))
+        : '#';
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -52,7 +43,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Formulir Observasi Perkembangan · SIPANDAI</title>
+    <title>Data Observasi Perkembangan · SIPANDAI</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -61,15 +52,15 @@
     <style>
         :root {
             --ind: #2a2080;
+            --ind-dk: #20186a;
             --ink: #161a2b;
             --mut: #6b7280;
             --line: #e3e6ee;
             --bg: #f6f7fb;
             --fld: #f5f6fa;
-            --bsb: #0f5c55;
-            --bsh: #1e4a7a;
-            --mb: #9a4a0c;
-            --bb: #6b7488;
+            --ok: #0f5c55;
+            --ok-bg: #e3f5ef;
+            --danger: #c0262d;
         }
         *, *::before, *::after { box-sizing: border-box; margin: 0; }
         html { -webkit-text-size-adjust: 100%; }
@@ -78,119 +69,124 @@
             font-size: 14px; line-height: 1.45; color: var(--ink); background: var(--bg);
             -webkit-font-smoothing: antialiased;
         }
-        .bsb { --c: var(--bsb); } .bsh { --c: var(--bsh); } .mb { --c: var(--mb); } .bb { --c: var(--bb); }
 
-        .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 20px 48px; display: flex; flex-direction: column; gap: 16px; }
-        form { display: flex; flex-direction: column; gap: 16px; }
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 20px 48px; display: flex; flex-direction: column; gap: 20px; }
+
+        /* Header */
+        .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
         h1 { font-size: clamp(24px, 4.2vw, 32px); font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
         .sub { color: var(--mut); font-size: 14px; margin-top: 6px; }
 
-        /* Info strip */
-        .info { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-        .info > div { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; }
-        .info small { display: block; font-size: 11px; color: var(--mut); }
-        .info b { display: block; font-size: 15px; font-weight: 600; margin-top: 2px; }
-        .info .ok { color: var(--bsb); }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            height: 46px; padding: 0 22px; font: inherit; font-size: 14px; font-weight: 600;
+            text-decoration: none; cursor: pointer; white-space: nowrap;
+            border: 1px solid var(--ind); border-radius: 10px; transition: background .15s, box-shadow .15s;
+        }
+        .btn.pri { background: var(--ind); color: #fff; box-shadow: 0 6px 16px rgba(42, 32, 128, .18); }
+        .btn.pri:hover { background: var(--ind-dk); }
+        .btn:focus-visible { outline: 2px solid var(--ind); outline-offset: 2px; }
 
-        /* Alerts */
-        .alert { border-radius: 12px; padding: 12px 16px; font-size: 13px; }
-        .alert.err { background: #fdecec; border: 1px solid #f5c2c2; color: #8a1c1c; }
-        .alert.err ul { margin: 4px 0 0 18px; padding: 0; }
-        .alert.ok { background: #e6f4f1; border: 1px solid #bfe0d9; color: var(--bsb); }
+        /* Stat cards */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+        .stat { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 22px 18px; }
+        .stat small { display: block; font-size: 14px; color: var(--ink); font-weight: 500; }
+        .stat .val { display: flex; align-items: baseline; gap: 22px; margin-top: 12px; }
+        .stat b { font-size: 32px; font-weight: 700; color: var(--ind); line-height: 1; }
+        .stat span { font-size: 13px; color: var(--mut); }
 
-        /* Card */
-        .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
-        .card h2 { font-size: 16px; font-weight: 600; }
-        .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-        .head h2 { margin: 0; }
-        .card > h2 { margin-bottom: 14px; }
-        .cnt { font-size: 11px; color: var(--mut); background: var(--fld); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
-
-        /* Fields */
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-        .mt { margin-top: 14px; }
-        .f label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; }
+        /* Filters */
+        .filters { display: grid; grid-template-columns: minmax(0, 2.6fr) repeat(4, minmax(0, 1fr)); gap: 14px; }
+        .f label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; }
         .ctl {
-            width: 100%; height: 42px; padding: 0 14px; font: inherit; font-size: 14px; color: var(--ink);
-            background-color: var(--fld); border: 1px solid var(--line); border-radius: 10px;
+            width: 100%; height: 46px; padding: 0 16px; font: inherit; font-size: 14px; color: var(--ink);
+            background-color: #fff; border: 1px solid var(--line); border-radius: 12px;
             transition: border-color .15s, box-shadow .15s;
         }
         select.ctl {
-            -webkit-appearance: none; appearance: none; padding-right: 42px; cursor: pointer;
+            -webkit-appearance: none; appearance: none; padding-right: 42px; cursor: pointer; font-weight: 500;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23161a2b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 6 5 5 5-5'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: right 14px center;
+            background-repeat: no-repeat; background-position: right 16px center;
         }
-        input[type=date].ctl { min-width: 0; }
-        input[type=date]::-webkit-calendar-picker-indicator { cursor: pointer; }
-        textarea.ctl { height: auto; min-height: 96px; padding: 10px 14px; resize: vertical; line-height: 1.45; }
         .ctl::placeholder { color: #7b8190; }
-        .ctl:focus { outline: none; border-color: var(--ind); box-shadow: 0 0 0 3px rgba(42, 32, 128, .15); background-color: #fff; }
+        .ctl:focus { outline: none; border-color: var(--ind); box-shadow: 0 0 0 3px rgba(42, 32, 128, .15); }
+        .hint { font-size: 12.5px; color: var(--mut); margin-top: -4px; }
 
-        /* Legend */
-        .legend { display: flex; gap: 12px; align-items: flex-start; padding: 10px 16px; color: var(--ind);
-                  background: #eceefb; border: 1px solid #dfe2f5; border-radius: 12px; }
-        .legend svg { flex: none; margin-top: 2px; }
-        .legend h3 { font-size: 12.5px; font-weight: 600; }
-        .legend ul { list-style: none; padding: 0; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 11.5px; color: #4a5068; }
-        .legend li { display: flex; align-items: center; gap: 6px; }
-        .legend b { color: var(--ink); font-weight: 600; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+        /* Table card */
+        .card { background: #fff; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+        .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 24px 18px; flex-wrap: wrap; }
+        .card-head .left { display: flex; align-items: center; gap: 14px; }
+        .card-head h2 { font-size: 18px; font-weight: 600; }
+        .badge { font-size: 11.5px; font-weight: 600; color: var(--ind); background: #eceefb; border-radius: 999px; padding: 5px 13px; white-space: nowrap; }
+        .note { font-size: 13px; color: var(--mut); }
 
-        /* Indicator table */
-        .thead, .row { display: grid; grid-template-columns: minmax(0, 2.4fr) repeat(4, minmax(0, 1fr)); align-items: center; }
-        .thead { background: var(--fld); border-radius: 8px; padding: 9px 12px; font-size: 11px; font-weight: 600; color: var(--mut); letter-spacing: .03em; text-transform: uppercase; }
-        .thead span + span { text-align: center; color: var(--c); }
-        .rows { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
-        .row { padding: 8px 12px; background: var(--fld); border: 1px solid transparent; border-radius: 10px; }
-        .row:nth-child(even) { background: #fff; border-color: var(--line); }
-        .ttl { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; }
-        .desc { font-size: 11.5px; color: var(--mut); margin-top: 2px; }
-        .tag { font-size: 10px; font-weight: 600; letter-spacing: .03em; padding: 2px 6px; border-radius: 5px; flex: none; }
-        .tag.ind { background: #e8eaf8; color: #3a3a8c; }
-        .tag.grn { background: #dff3ee; color: #0f5c55; }
-        .tag.blu { background: #e0eaf6; color: #1e4a7a; }
-        .tag.org { background: #fbe9dc; color: #9a4a0c; }
-
-        .opts { display: contents; }
-        .opt { display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
-        .opt span { display: none; font-size: 12px; font-weight: 600; color: var(--c); }
-        .opt input {
-            -webkit-appearance: none; appearance: none; flex: none; margin: 0; cursor: pointer;
-            width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 1.5px solid #d5d9e3;
-            transition: border-color .15s, background .15s;
+        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; min-width: 940px; border-collapse: collapse; }
+        thead th {
+            background: var(--fld); text-align: left; font-size: 13px; font-weight: 500; color: #3b4157;
+            padding: 14px 12px; white-space: nowrap;
         }
-        .opt input:hover { border-color: var(--c); }
-        .opt input:checked { border-color: var(--c); background: radial-gradient(circle, var(--c) 0 3.5px, #fff 4px 6.5px, var(--c) 7px); }
-        .opt input:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+        thead th:first-child, tbody td:first-child { padding-left: 24px; }
+        thead th:last-child, tbody td:last-child { padding-right: 24px; }
+        tbody td { padding: 12px; font-size: 13.5px; vertical-align: middle; }
+        tbody tr:nth-child(even) { background: var(--fld); }
+        .nama { font-weight: 600; font-size: 14px; }
+        .kode { font-size: 12.5px; color: var(--mut); margin-top: 1px; }
 
-        /* Actions */
-        .act { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .btn {
-            display: flex; align-items: center; justify-content: center; height: 46px; padding: 0 16px;
-            font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer;
-            border: 1px solid var(--ind); border-radius: 10px; transition: background .15s, box-shadow .15s;
+        .status {
+            display: inline-block; padding: 4px 14px; border-radius: 999px;
+            font-size: 12px; font-weight: 500; color: var(--ok); background: var(--ok-bg);
         }
-        .btn.sec { background: #fff; color: var(--ind); }
-        .btn.sec:hover { background: #f0f0fb; }
-        .btn.pri { background: var(--ind); color: #fff; }
-        .btn.pri:hover { background: #20186a; }
-        .btn:focus-visible { outline: 2px solid var(--ind); outline-offset: 2px; }
+
+        .aksi { display: flex; align-items: center; gap: 8px; }
+        .aksi form { display: inline; }
+        .abtn {
+            display: inline-flex; align-items: center; justify-content: center;
+            height: 36px; padding: 0 14px; font: inherit; font-size: 13px; font-weight: 500;
+            text-decoration: none; cursor: pointer; border-radius: 8px;
+            background: #fff; color: var(--ink); border: 1px solid var(--line);
+            transition: background .15s, border-color .15s;
+        }
+        .abtn.lihat { background: #eceefb; border-color: #eceefb; color: var(--ind); }
+        .abtn.lihat:hover { background: #dfe2f5; }
+        .abtn.edit:hover { background: var(--fld); }
+        .abtn.hapus { color: var(--danger); }
+        .abtn.hapus:hover { background: #fdecec; border-color: #f5c2c2; }
+        .abtn:focus-visible { outline: 2px solid var(--ind); outline-offset: 2px; }
+
+        .empty { text-align: center; color: var(--mut); padding: 40px 12px !important; }
+
+        /* Footer / pagination */
+        .card-foot {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            margin: 0 24px; padding: 20px 0; border-top: 1px solid var(--line);
+        }
+        .card-foot p { font-size: 13px; color: var(--mut); }
+        .pager { display: flex; align-items: center; gap: 8px; }
+        .pg {
+            display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px;
+            padding: 0 16px; font: inherit; font-size: 12.5px; color: var(--mut); text-decoration: none;
+            background: #fff; border: 1px solid var(--line); border-radius: 8px;
+        }
+        .pg.on { background: var(--ind); border-color: var(--ind); color: #fff; font-weight: 600; padding: 0; width: 42px; }
+        .pg.off { opacity: .6; pointer-events: none; }
+
+        /* Alerts */
+        .alert { border-radius: 12px; padding: 12px 16px; font-size: 13px; background: #e6f4f1; border: 1px solid #bfe0d9; color: var(--ok); }
 
         /* Responsive */
-        @media (max-width: 760px) {
-            .wrap { padding: 20px 14px 36px; }
-            .card { padding: 16px; }
-            .thead { display: none; }
-            .row { grid-template-columns: 1fr; gap: 10px; padding: 12px; }
-            .opts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-            .opt { justify-content: flex-start; padding: 8px 10px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
-            .opt span { display: inline; }
-            .opt:has(input:checked) { border-color: var(--c); }
+        @media (max-width: 1000px) {
+            .filters { grid-template-columns: 1fr 1fr; }
+            .filters .f:first-child { grid-column: 1 / -1; }
         }
-        @media (max-width: 480px) {
-            .act { grid-template-columns: 1fr; }
-            .btn.pri { order: -1; }
-            .legend ul { flex-direction: column; }
+        @media (max-width: 560px) {
+            .wrap { padding: 20px 14px 36px; }
+            .top .btn { width: 100%; }
+            .filters { grid-template-columns: 1fr; }
+            .card-head, .card-foot { padding-left: 16px; padding-right: 16px; }
+            .card-foot { margin: 0; }
+            thead th:first-child, tbody td:first-child { padding-left: 16px; }
+            .pager { width: 100%; justify-content: space-between; }
         }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
     </style>
@@ -198,158 +194,145 @@
 <body>
 <main class="wrap">
 
-    <header>
-        <h1>Formulir Observasi Perkembangan</h1>
-        <p class="sub">Catat hasil observasi perkembangan anak dengan kategori respons yang seragam untuk setiap indikator.</p>
+    {{-- Header halaman --}}
+    <header class="top">
+        <div>
+            <h1>Data Observasi Perkembangan</h1>
+            <p class="sub">Lihat dan kelola seluruh hasil pengamatan perkembangan anak.</p>
+        </div>
+        <a href="{{ $url('guru.observasi.create') }}" class="btn pri">
+            <span aria-hidden="true">+</span> Tambah observasi
+        </a>
     </header>
 
-    <section class="info" aria-label="Informasi guru">
-        <div><small>Guru Pengajar</small><b>{{ $guru }}</b></div>
-        <div><small>Tahun Ajaran</small><b>{{ $tahunAjaran }} &bull; {{ $semester }}</b></div>
-        <div><small>Status</small><b class="ok">{{ $statusAjaran }}</b></div>
+    @if (session('sukses'))
+        <div class="alert" role="status">{{ session('sukses') }}</div>
+    @endif
+
+    {{-- Kartu ringkasan --}}
+    <section class="stats" aria-label="Ringkasan observasi">
+        <div class="stat">
+            <small>Total observasi</small>
+            <div class="val"><b>{{ $total }}</b><span>Seluruh data tersimpan</span></div>
+        </div>
+        <div class="stat">
+            <small>Anak terobservasi</small>
+            <div class="val"><b>{{ $anakUnik }}</b><span>Dari {{ $kelasNamaStr }}</span></div>
+        </div>
+        <div class="stat">
+            <small>Kelas terobservasi</small>
+            <div class="val"><b>{{ $kelasUnik }}</b><span>Tahun ajaran {{ $tahunAjaran }}</span></div>
+        </div>
     </section>
 
-    @if (session('sukses'))
-        <div class="alert ok" role="status">{{ session('sukses') }}</div>
-    @endif
-    @if ($errors->any())
-        <div class="alert err" role="alert">
-            <b>Periksa kembali isian Anda:</b>
-            <ul>@foreach ($errors->all() as $pesan)<li>{{ $pesan }}</li>@endforeach</ul>
+    {{-- Filter --}}
+    <form method="GET" action="{{ $url('guru.observasi.index') }}" class="filters" role="search">
+        <div class="f">
+            <label for="q">Cari observasi</label>
+            <input class="ctl" type="search" id="q" name="q" value="{{ request('q') }}" placeholder="Cari nama anak atau kegiatan...">
         </div>
-    @endif
-
-    <form method="POST" action="{{ route('guru.observasi.store') }}">
-        @csrf
-
-        {{-- Identitas Observasi --}}
-        <section class="card">
-            <h2>Identitas Observasi</h2>
-            <div class="grid">
-                <div class="f">
-                    <label for="kelas_id">Pilih Kelas</label>
-                    <select class="ctl" id="kelas_id" name="kelas_id" required>
-                        @foreach ($kelasList as $k)
-                            <option value="{{ $k['id'] }}" @selected((string) old('kelas_id', $kelasList[0]['id']) === (string) $k['id'])>{{ $k['nama'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="f">
-                    <label for="anak_id">Pilih Anak</label>
-                    <select class="ctl" id="anak_id" name="anak_id" required></select>
-                </div>
-                <div class="f">
-                    <label for="tanggal_observasi">Tanggal Observasi</label>
-                    <input class="ctl" type="date" id="tanggal_observasi" name="tanggal_observasi"
-                           value="{{ old('tanggal_observasi', now()->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}" required>
-                </div>
-            </div>
-            <div class="f mt">
-                <label for="kegiatan">Kegiatan Observasi</label>
-                <select class="ctl" id="kegiatan" name="kegiatan" required>
-                    @foreach ($kegiatanList as $kegiatan)
-                        <option value="{{ $kegiatan }}" @selected(old('kegiatan', $kegiatanList[0]) === $kegiatan)>{{ $kegiatan }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </section>
-
-        {{-- Legenda kategori --}}
-        <aside class="legend" aria-label="Kategori respons seragam">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5M12 7.6v.01"/>
-            </svg>
-            <div>
-                <h3>Kategori Respons Seragam</h3>
-                <ul>
-                    @foreach ($kategori as $kode => $nama)
-                        <li class="{{ strtolower($kode) }}"><i class="dot"></i><span><b>{{ $kode }}</b> &ndash; {{ $nama }}</span></li>
-                    @endforeach
-                </ul>
-            </div>
-        </aside>
-
-        {{-- Indikator Perkembangan --}}
-        <section class="card">
-            <div class="head">
-                <h2>Indikator Perkembangan</h2>
-                <span class="cnt">{{ count($indikator) }} Indikator</span>
-            </div>
-
-            <div class="thead" aria-hidden="true">
-                <span>Indikator</span>
-                @foreach ($kategori as $kode => $nama)
-                    <span class="{{ strtolower($kode) }}">{{ $kode }}</span>
+        <div class="f">
+            <label for="kelas">Kelas</label>
+            <select class="ctl" id="kelas" name="kelas" onchange="this.form.submit()">
+                <option value="">Semua kelas</option>
+                @foreach ($kelasList as $k)
+                    <option value="{{ $k['id'] }}" @selected((string) request('kelas') === (string) $k['id'])>{{ $k['nama'] }}</option>
                 @endforeach
-            </div>
-
-            <div class="rows">
-                @foreach ($indikator as $i)
-                    @php $nilai = old('indikator.' . $i['id'], $i['default'] ?? null); @endphp
-                    <div class="row" role="radiogroup" aria-labelledby="ind-{{ $i['id'] }}">
-                        <div>
-                            <div class="ttl" id="ind-{{ $i['id'] }}">
-                                <span class="tag {{ $i['tone'] }}">{{ $i['kode'] }}</span>{{ $i['judul'] }}
-                            </div>
-                            <p class="desc">{{ $i['deskripsi'] }}</p>
-                        </div>
-                        <div class="opts">
-                            @foreach ($kategori as $kode => $nama)
-                                <label class="opt {{ strtolower($kode) }}">
-                                    <input type="radio" name="indikator[{{ $i['id'] }}]" value="{{ $kode }}"
-                                           aria-label="{{ $kode }} – {{ $nama }}" @checked($nilai === $kode) required>
-                                    <span>{{ $kode }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
+            </select>
+        </div>
+        <div class="f">
+            <label for="tahun">Tahun ajaran</label>
+            <select class="ctl" id="tahun" name="tahun" onchange="this.form.submit()">
+                @foreach ($tahunList as $t)
+                    <option value="{{ $t }}" @selected(request('tahun', $tahunAjaran) === $t)>{{ $t }}</option>
                 @endforeach
-            </div>
-        </section>
-
-        {{-- Catatan Observasi --}}
-        <section class="card">
-            <h2>Catatan Observasi</h2>
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-                <div class="f">
-                    <label for="deskripsi_pengamatan">Deskripsi Pengamatan</label>
-                    <textarea class="ctl" id="deskripsi_pengamatan" name="deskripsi_pengamatan" rows="3"
-                              placeholder="Anak menunjukkan antusiasme tinggi saat bermain di sentra balok. Mampu bekerja sama dengan 2 teman sebaya namun perlu bimbingan dalam motorik halus...">{{ old('deskripsi_pengamatan') }}</textarea>
-                </div>
-                <div class="f">
-                    <label for="tindak_lanjut">Tindak Lanjut / Rekomendasi</label>
-                    <textarea class="ctl" id="tindak_lanjut" name="tindak_lanjut" rows="3"
-                              placeholder="Berikan stimulasi motorik halus melalui kegiatan menggunting dan menempel...">{{ old('tindak_lanjut') }}</textarea>
-                </div>
-            </div>
-        </section>
-
-        {{-- Aksi --}}
-        <div class="act">
-            <a href="{{ route('guru.dashboard') }}" class="btn sec">Batal</a>
-            <button type="submit" class="btn pri">Simpan Observasi</button>
+            </select>
+        </div>
+        <div class="f">
+            <label for="semester">Semester</label>
+            <select class="ctl" id="semester" name="semester" onchange="this.form.submit()">
+                @foreach ($semesterList as $s)
+                    <option value="{{ $s }}" @selected(request('semester', $semester) === $s)>{{ $s }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="f">
+            <label for="urut">Urutkan</label>
+            <select class="ctl" id="urut" name="urut" onchange="this.form.submit()">
+                @foreach ($urutList as $val => $label)
+                    <option value="{{ $val }}" @selected(request('urut', 'terbaru') === $val)>{{ $label }}</option>
+                @endforeach
+            </select>
         </div>
     </form>
+
+    <p class="hint">Menampilkan seluruh observasi &bull; Tahun ajaran {{ $tahunAjaran }}, semester {{ strtolower($semester) }}</p>
+
+    {{-- Tabel observasi --}}
+    <section class="card" aria-labelledby="judul-tabel">
+        <div class="card-head">
+            <div class="left">
+                <h2 id="judul-tabel">Seluruh observasi</h2>
+                <span class="badge">{{ $total }} data</span>
+            </div>
+            <span class="note">Data contoh untuk rancangan CRUD</span>
+        </div>
+
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Nama anak</th>
+                        <th scope="col">Kelas</th>
+                        <th scope="col">Tanggal</th>
+                        <th scope="col">Kegiatan observasi</th>
+                        <th scope="col">Guru pengajar</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($observasi as $o)
+                        <tr>
+                            <td>
+                                <div class="nama">{{ $o['anak'] }}</div>
+                                <div class="kode">{{ $o['kode'] }}</div>
+                            </td>
+                            <td>{{ $o['kelas'] }}</td>
+                            <td>{{ $o['tanggal'] }}</td>
+                            <td>{{ $o['kegiatan'] }}</td>
+                            <td>{{ $o['guru'] }}</td>
+                            <td><span class="status">{{ $o['status'] }}</span></td>
+                            <td>
+                                <div class="aksi">
+                                    <a href="{{ $url('guru.observasi.show', $o['id']) }}" class="abtn lihat">Lihat</a>
+                                    <a href="{{ $url('guru.observasi.edit', $o['id']) }}" class="abtn edit">Edit</a>
+                                    <form method="POST" action="{{ $url('guru.observasi.destroy', $o['id']) }}"
+                                          onsubmit="return confirm('Hapus observasi {{ $o['kode'] }}?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="abtn hapus">Hapus</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="7" class="empty">Belum ada data observasi.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-foot">
+            <p>Menampilkan 1–{{ $total }} dari {{ $total }} observasi</p>
+            <nav class="pager" aria-label="Navigasi halaman">
+                <a href="#" class="pg off" aria-disabled="true">Sebelumnya</a>
+                <a href="#" class="pg on" aria-current="page">1</a>
+                <a href="#" class="pg off" aria-disabled="true">Berikutnya</a>
+            </nav>
+        </div>
+    </section>
+
 </main>
-
-<script>
-    // Daftar anak mengikuti kelas yang dipilih
-    (() => {
-        const anak = @json($anakList);
-        const kelas = document.getElementById('kelas_id');
-        const pilihAnak = document.getElementById('anak_id');
-
-        const render = (terpilih) => {
-            pilihAnak.length = 0;
-            anak.filter(a => String(a.kelas_id) === kelas.value)
-                .forEach((a, i) => pilihAnak.add(
-                    new Option(a.nama, a.id, false, terpilih ? String(a.id) === String(terpilih) : i === 0)
-                ));
-        };
-
-        kelas.addEventListener('change', () => render(null));
-        render(@json(old('anak_id')));
-    })();
-</script>
 </body>
 </html>

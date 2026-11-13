@@ -48,5 +48,11 @@ class DatabaseSeeder extends Seeder
             'email' => 'andi.pratama@tkceria.sch.id',
             'nip' => '199512012023011004',
         ]);
+
+        $this->call([
+            KelasSeeder::class,
+            AnakSeeder::class,
+            DataMasterSeeder::class,
+        ]);
     }
 }
