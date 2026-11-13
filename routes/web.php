@@ -14,9 +14,8 @@ use Illuminate\Support\Facades\Route;
 // {guru} hanya cocok dengan akun berperan guru; akun admin menghasilkan 404.
 Route::bind('guru', fn (string $nilai) => User::where('peran', 'guru')->findOrFail($nilai));
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// PBI-22 Landing page. Tidak mengalihkan otomatis; pengguna yang sudah masuk melihat tombol ke dashboard.
+Route::view('/', 'landing')->name('beranda');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
