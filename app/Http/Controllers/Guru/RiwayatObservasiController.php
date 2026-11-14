@@ -26,21 +26,19 @@ class RiwayatObservasiController extends Controller
 
         $dasar = Observasi::query()->where('anak_id', $anak->id);
 
-        // Periode "30 hari terakhir" dihitung dari observasi terbaru anak agar data lama
-        // tetap terlihat saat demo, bukan dari tanggal hari ini.
-        $tanggalTerbaru = (clone $dasar)->max('tanggal');
         $totalSemua = (clone $dasar)->count();
 
         $data = $request->validated();
         $filter = [
-            'periode' => $data['periode'] ?? '30',
+            // Default "semua periode" supaya seluruh riwayat langsung terlihat.
+            'periode' => $data['periode'] ?? 'semua',
             'aspek' => $data['aspek'] ?? null,
             'aktivitas' => $data['aktivitas'] ?? null,
             'strategi' => $data['strategi'] ?? null,
             'respons' => $data['respons'] ?? null,
         ];
 
-        $filterAktif = $filter['periode'] !== '30'
+        $filterAktif = $filter['periode'] !== 'semua'
             || $filter['aspek'] !== null
             || $filter['aktivitas'] !== null
             || $filter['strategi'] !== null
@@ -50,7 +48,7 @@ class RiwayatObservasiController extends Controller
             ->with(['aktivitas', 'strategi', 'aspek'])
             ->withCount('riwayatPerubahan');
 
-        $rentang = $this->rentangPeriode($filter['periode'], $tanggalTerbaru);
+        $rentang = $this->rentangPeriode($filter['periode']);
 
         if ($rentang !== null) {
             $query->whereBetween('tanggal', $rentang);
@@ -135,11 +133,12 @@ class RiwayatObservasiController extends Controller
 
     /**
      * Batas periode inklusif (tanggal mulai dan selesai ikut dihitung).
+     * "30 hari terakhir" dan "7 hari terakhir" dihitung dari hari ini.
      * Null berarti seluruh periode.
      *
      * @return array{0: string, 1: string}|null
      */
-    private function rentangPeriode(string $periode, ?string $tanggalTerbaru): ?array
+    private function rentangPeriode(string $periode): ?array
     {
         if (preg_match('/^(\d{4})-(\d{2})$/', $periode, $cocok) === 1) {
             $awalBulan = Carbon::createFromDate((int) $cocok[1], (int) $cocok[2], 1)->startOfMonth();
@@ -147,15 +146,11 @@ class RiwayatObservasiController extends Controller
             return [$awalBulan->toDateString(), $awalBulan->copy()->endOfMonth()->toDateString()];
         }
 
+        $hariIni = Carbon::now()->startOfDay();
+
         return match ($periode) {
-            '30' => $tanggalTerbaru === null ? null : [
-                Carbon::parse($tanggalTerbaru)->subDays(29)->toDateString(),
-                $tanggalTerbaru,
-            ],
-            '7' => $tanggalTerbaru === null ? null : [
-                Carbon::parse($tanggalTerbaru)->subDays(6)->toDateString(),
-                $tanggalTerbaru,
-            ],
+            '30' => [$hariIni->copy()->subDays(29)->toDateString(), $hariIni->toDateString()],
+            '7' => [$hariIni->copy()->subDays(6)->toDateString(), $hariIni->toDateString()],
             default => null,
         };
     }

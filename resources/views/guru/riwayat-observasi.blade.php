@@ -26,8 +26,8 @@
     $batasAwalTampil = $filterAktif ? $totalObservasi : min($jumlahAwalTampil, $totalObservasi);
     $nomorObservasi = 0;
 
-    $tautanDataAnak = \Illuminate\Support\Facades\Route::has('guru.data-anak.index')
-        ? route('guru.data-anak.index')
+    $tautanDataAnak = \Illuminate\Support\Facades\Route::has('guru.anak.index')
+        ? route('guru.anak.index')
         : route('guru.dashboard');
 
     $tautanHalaman = route('guru.riwayat-observasi', $anak['id']);

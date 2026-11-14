@@ -11,6 +11,7 @@ use App\Models\Observasi;
 use App\Models\StrategiPembelajaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 // Fitur: PBI-11 Riwayat Observasi Anak dengan Filter
@@ -105,6 +106,14 @@ class RiwayatObservasiTest extends TestCase
         $this->buatRiwayatAnak1();
     }
 
+    protected function tearDown(): void
+    {
+        // Kembalikan waktu asli setelah test yang memakai travelTo().
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
+
     public function test_tc_11_01_riwayat_tampil_kronologis_dan_penghitung_14(): void
     {
         $respons = $this->actingAs($this->guruA)
@@ -176,6 +185,48 @@ class RiwayatObservasiTest extends TestCase
             ->assertSee('Catatan hari pertama')
             ->assertSee('Catatan hari terakhir')
             ->assertDontSee('Catatan sebelum periode');
+    }
+
+    public function test_periode_30_dan_7_hari_dihitung_dari_hari_ini(): void
+    {
+        $this->travelTo('2026-10-20 09:00:00');
+
+        // 7 hari terakhir = 14-20 Okt 2026, hanya observasi 15 Okt yang masuk.
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', ['anak' => $this->anak1->id, 'periode' => '7']))
+            ->assertOk()
+            ->assertSee('1 dari 14 catatan')
+            ->assertSee('Catatan ke-14')
+            ->assertDontSee('Catatan ke-13');
+
+        // 30 hari terakhir = 21 Sep - 20 Okt 2026, seluruh 14 catatan masuk.
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', ['anak' => $this->anak1->id, 'periode' => '30']))
+            ->assertOk()
+            ->assertSee('14 dari 14 catatan');
+
+        // Setelah lewat 30 hari dari observasi terakhir, filter 30 hari tidak menampilkan apa pun.
+        $this->travelTo('2026-11-14 09:00:00');
+
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', ['anak' => $this->anak1->id, 'periode' => '30']))
+            ->assertOk()
+            ->assertSee('0 dari 14 catatan')
+            ->assertSee('Belum ada observasi yang sesuai');
+    }
+
+    public function test_default_periode_semua_tetap_menampilkan_data_lama(): void
+    {
+        // Default "semua periode" tidak bergantung pada tanggal hari ini.
+        $this->travelTo('2030-01-01 08:00:00');
+
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', $this->anak1->id))
+            ->assertOk()
+            ->assertSee('14 catatan')
+            ->assertDontSee('Belum ada observasi yang sesuai');
+
+        $this->assertSame(14, substr_count($this->get(route('guru.riwayat-observasi', $this->anak1->id))->getContent(), 'Catatan ke-'));
     }
 
     public function test_tc_11_05_filter_aspek(): void
