@@ -1,3 +1,4 @@
+
 <?php
 
 use App\Http\Controllers\Admin\AturanStrategiController;
@@ -9,7 +10,6 @@ use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
 use App\Http\Controllers\Guru\ObservasiController;
 use App\Http\Controllers\Guru\RiwayatObservasiController;
-
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 // {guru} hanya cocok dengan akun berperan guru; akun admin menghasilkan 404.
 Route::bind('guru', fn (string $nilai) => User::where('peran', 'guru')->findOrFail($nilai));
 
-// PBI-22 Landing page. Tidak mengalihkan otomatis; pengguna yang sudah masuk melihat tombol ke dashboard.
+// PBI-22 Landing page.
 Route::view('/', 'landing')->name('beranda');
 
 Route::middleware('guest')->group(function () {
@@ -61,7 +61,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('peran:guru')
         ->name('guru.riwayat-observasi');
 
-    // Data Observasi Perkembangan + formulir (guru saja).
+    // PBI-7 Formulir pencatatan observasi (guru saja).
     Route::middleware('peran:guru')
         ->prefix('guru/observasi')
         ->name('guru.observasi.')
@@ -70,9 +70,6 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/tambah', 'create')->name('create');
             Route::post('/', 'store')->name('store');
-            Route::get('/{observasi}/edit', 'edit')->name('edit');
-            Route::put('/{observasi}', 'update')->name('update');
-            Route::delete('/{observasi}', 'destroy')->name('destroy');
         });
 
     // PBI-2 Kelola Aktivitas dan Strategi Pembelajaran (admin dan guru).
@@ -95,18 +92,26 @@ Route::middleware('auth')->group(function () {
             Route::delete('/strategi/{strategi}', [StrategiPembelajaranController::class, 'destroy'])->name('strategi.destroy');
         });
 
-    // PBI-4 Kelola Aspek Perkembangan (admin saja). Diletakkan di bawah grup data-master PBI-2.
-    Route::middleware('peran:admin')->prefix('data-master')->name('data-master.')->group(function () {
-        Route::controller(AspekPerkembanganController::class)->prefix('aspek')->name('aspek.')->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::post('/', 'store')->name('store');
-            Route::put('/{aspek}', 'update')->name('update');
-            Route::delete('/{aspek}', 'destroy')->name('destroy');
+    // PBI-4 Kelola Aspek Perkembangan (admin saja).
+    Route::middleware('peran:admin')
+        ->prefix('data-master')
+        ->name('data-master.')
+        ->group(function () {
+            Route::controller(AspekPerkembanganController::class)
+                ->prefix('aspek')
+                ->name('aspek.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'store')->name('store');
+                    Route::put('/{aspek}', 'update')->name('update');
+                    Route::delete('/{aspek}', 'destroy')->name('destroy');
+                });
         });
-    });
 
     // PBI-4 Kelola Aturan Alternatif Strategi (admin saja).
-    Route::middleware('peran:admin')->prefix('admin/aturan-strategi')->name('admin.aturan-strategi.')
+    Route::middleware('peran:admin')
+        ->prefix('admin/aturan-strategi')
+        ->name('admin.aturan-strategi.')
         ->controller(AturanStrategiController::class)
         ->group(function () {
             Route::get('/', 'index')->name('index');

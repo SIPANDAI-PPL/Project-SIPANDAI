@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Guru;
 
 use App\Enums\KategoriRespons;
 use App\Models\Observasi;
@@ -21,7 +21,12 @@ class ObservasiRequest extends FormRequest
         $observasi = $this->route('observasi'); // null saat tambah
 
         return [
-            'kelas_id' => ['required', 'integer', Rule::exists('kelas', 'id')],
+            'kelas_id' => [
+    'required',
+    'integer',
+    Rule::exists('kelas', 'id')
+        ->where('guru_id', $this->user()->id),
+],
             'anak_id' => [
                 'required', 'integer',
                 Rule::exists('anak', 'id')->where(function ($q) use ($observasi) {

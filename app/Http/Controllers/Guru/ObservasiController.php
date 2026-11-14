@@ -4,14 +4,13 @@ namespace App\Http\Controllers\Guru;
 
 use App\Enums\KategoriRespons;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ObservasiRequest;
+use App\Http\Requests\Guru\ObservasiRequest;
 use App\Models\Aktivitas;
 use App\Models\Anak;
 use App\Models\AspekPerkembangan;
 use App\Models\Observasi;
 use App\Models\StrategiPembelajaran;
 use App\Support\TahunAjaran;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +89,7 @@ class ObservasiController extends Controller
                 )
             )
             ->when($cari !== '', function ($q) use ($cari) {
-                $like = '%' . addcslashes($cari, '\\%\_') . '%';
+                $like = '%' . addcslashes($cari, '\\%_') . '%';
 
                 $q->where(function ($w) use ($like) {
                     $w->whereHas('anak', fn ($a) => $a
@@ -168,8 +167,10 @@ class ObservasiController extends Controller
         );
     }
 
-    public function store(ObservasiRequest $request): RedirectResponse
-    {
+    
+public function store(ObservasiRequest $request): RedirectResponse
+{
+    try {
         Observasi::create(
             $request->dataObservasi() + [
                 'guru_id' => $request->user()->id,
@@ -180,147 +181,82 @@ class ObservasiController extends Controller
             ->route('guru.observasi.index')
             ->with('notifikasi', [
                 'judul' => 'Observasi berhasil disimpan',
-                'pesan' => 'Hasil observasi dapat dilihat, diedit, atau dihapus melalui halaman ini.',
+                'pesan' => 'Hasil observasi berhasil dicatat dan dapat dilihat melalui halaman ini.',
             ]);
-    }
 
-    public function edit(
-        Request $request,
-        Observasi $observasi
-    ): View {
-        $this->pastikanMilikGuru($request, $observasi);
-
-        $observasi->load('anak');
-
-        return view(
-            'guru.observasi.form',
-            $this->dataFormulir($observasi)
-        );
-    }
-
-    public function update(
-        ObservasiRequest $request,
-        Observasi $observasi
-    ): RedirectResponse {
-        $this->pastikanMilikGuru($request, $observasi);
-
-        $observasi->update(
-            $request->dataObservasi()
-        );
+    } catch (\Throwable $e) {
+        report($e);
 
         return redirect()
             ->route('guru.observasi.index')
-            ->with('notifikasi', [
-                'judul' => 'Observasi berhasil diperbarui',
-                'pesan' => 'Perubahan pada hasil observasi sudah tersimpan.',
-            ]);
-    }
-
-    public function destroy(
-        Request $request,
-        Observasi $observasi
-    ): RedirectResponse {
-        $this->pastikanMilikGuru($request, $observasi);
-
-        try {
-            $observasi->delete();
-        } catch (QueryException) {
-            return back()->with(
+            ->with(
                 'gagal',
-                'Observasi tidak dapat dihapus karena masih terhubung dengan data lain.'
+                'Data observasi gagal disimpan. Silakan coba kembali.'
             );
-        }
-
-        return back()->with('notifikasi', [
-            'judul' => 'Observasi berhasil dihapus',
-            'pesan' => 'Data observasi tersebut sudah dihapus dari daftar.',
-        ]);
     }
+}
 
-    /**
-     * Guru hanya boleh mengubah atau menghapus observasi miliknya sendiri.
-     */
-    private function pastikanMilikGuru(
-        Request $request,
-        Observasi $observasi
-    ): void {
-        abort_unless(
-            (int) $observasi->guru_id === (int) $request->user()->id,
-            404
-        );
-    }
+    
+/**
+ * Menyiapkan data untuk formulir tambah observasi.
+ */
+private function dataFormulir(): array
+{
+    // Mengambil kelas yang menjadi tanggung jawab guru login.
+    $kelasList = DB::table('kelas')
+        ->where('guru_id', auth()->id())
+        ->select('id', 'nama_kelas as nama')
+        ->orderBy('nama_kelas')
+        ->get();
 
-    /**
-     * Menyiapkan data untuk formulir observasi.
-     */
-    private function dataFormulir(
-        ?Observasi $observasi = null
-    ): array {
-        $anakList = Anak::query()
-            ->where(
-                fn ($q) => $q->where('aktif', true)
-                    ->when(
-                        $observasi,
-                        fn ($w) => $w->orWhere('id', $observasi->anak_id)
-                    )
-            )
+    $kelasIds = $kelasList->pluck('id');
+
+    // Hanya mengambil anak aktif dari kelas milik guru tersebut.
+    $anakList = Anak::query()
+        ->where('aktif', true)
+        ->whereIn('kelas_id', $kelasIds)
+        ->orderBy('nama')
+        ->get(['id', 'nama', 'kelas_id'])
+        ->map(fn ($a) => [
+            'id' => $a->id,
+            'nama' => $a->nama,
+            'kelas_id' => $a->kelas_id,
+        ])
+        ->values();
+
+    return [
+        'observasi' => null,
+
+        'kelasList' => $kelasList,
+
+        'anakList' => $anakList,
+
+        'aktivitasList' => $this->pilihanAktif(
+            Aktivitas::class
+        ),
+
+        'strategiList' => $this->pilihanAktif(
+            StrategiPembelajaran::class
+        ),
+
+        'aspekList' => AspekPerkembangan::query()
             ->orderBy('nama')
-            ->get(['id', 'nama', 'kelas_id'])
-            ->map(fn ($a) => [
-                'id' => $a->id,
-                'nama' => $a->nama,
-                'kelas_id' => $a->kelas_id,
-            ])
-            ->values();
+            ->get(['id', 'nama']),
 
-        return [
-            'observasi' => $observasi,
+        'responsList' => KategoriRespons::cases(),
 
-            // Mengambil nama_kelas, tetapi tetap menyediakan
-            // atribut nama agar kompatibel dengan file Blade.
-            'kelasList' => DB::table('kelas')
-                ->select('id', 'nama_kelas as nama')
-                ->orderBy('nama_kelas')
-                ->get(),
+        'tahunAjaran' => TahunAjaran::dariTanggal(),
+    ];
+}
 
-            'anakList' => $anakList,
-
-            'aktivitasList' => $this->pilihanAktif(
-                Aktivitas::class,
-                $observasi?->aktivitas_id
-            ),
-
-            'strategiList' => $this->pilihanAktif(
-                StrategiPembelajaran::class,
-                $observasi?->strategi_id
-            ),
-
-            'aspekList' => AspekPerkembangan::query()
-                ->orderBy('nama')
-                ->get(['id', 'nama']),
-
-            'responsList' => KategoriRespons::cases(),
-
-            'tahunAjaran' => TahunAjaran::dariTanggal(),
-        ];
-    }
 
     /**
-     * Mengambil pilihan aktif dan mempertahankan pilihan lama
-     * yang sudah dinonaktifkan ketika melakukan edit.
+     * Mengambil pilihan data master yang masih aktif.
      */
-    private function pilihanAktif(
-        string $model,
-        ?int $idTerpilih
-    ) {
+    private function pilihanAktif(string $model)
+    {
         return $model::query()
-            ->where(
-                fn ($q) => $q->where('aktif', true)
-                    ->when(
-                        $idTerpilih,
-                        fn ($w) => $w->orWhere('id', $idTerpilih)
-                    )
-            )
+            ->where('aktif', true)
             ->orderBy('nama')
             ->get(['id', 'nama']);
     }
