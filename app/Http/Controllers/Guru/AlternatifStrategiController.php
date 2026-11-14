@@ -68,9 +68,9 @@ class AlternatifStrategiController extends Controller
             'jumlahPola' => $daftarPola->count(),
             'jumlahSaran' => $daftarPola->whereNotNull('saran')->count() + $daftarManual->count(),
             'jumlahBelumCukup' => $daftarPola->whereNull('saran')->count(),
-            'daftarAnak' => $kelas ? $kelas->anak()->where('aktif', true)->orderBy('nama')->get(['id', 'nama']) : collect(),
             'pilihanAspek' => AspekPerkembangan::query()->orderBy('id')->get(['id', 'nama']),
-            'pilihanStrategi' => StrategiPembelajaran::query()->aktif()->orderBy('nama')->get(['id', 'nama']),
+            // Deskripsi dipakai untuk pratinjau di dialog tambah alternatif.
+            'pilihanStrategi' => StrategiPembelajaran::query()->aktif()->orderBy('nama')->get(['id', 'nama', 'deskripsi']),
             'cari' => $cari,
             'aspek' => $aspek,
         ]);
