@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DataMaster\AktivitasController;
 use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
+use App\Http\Controllers\Guru\RiwayatObservasiController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -53,8 +54,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('peran:guru')
         ->name('guru.dashboard');
 
-    // Pratinjau frontend PBI-11. Ganti dengan controller RiwayatObservasiController saat backend siap.
-    Route::view('/guru/riwayat-observasi', 'guru.riwayat_observasi')
+    // PBI-11 Riwayat Observasi Anak dengan Filter.
+    Route::get('/guru/anak/{anak}/riwayat-observasi', [RiwayatObservasiController::class, 'index'])
         ->middleware('peran:guru')
         ->name('guru.riwayat-observasi');
 

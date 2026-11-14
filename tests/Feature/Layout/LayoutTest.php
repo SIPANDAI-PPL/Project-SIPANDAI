@@ -37,7 +37,6 @@ class LayoutTest extends TestCase
             ->assertSee($guru->nama)
             ->assertSee('href="'.route('guru.dashboard').'"', false)
             ->assertSee('href="'.route('data-master.aktivitas.index').'"', false)
-            ->assertSee('href="'.route('guru.riwayat-observasi').'"', false)
             ->assertDontSee('Kelola Akun Guru')
             ->assertDontSee('Aturan Strategi')
             ->assertDontSee('href="'.route('admin.guru.index').'"', false)
@@ -68,7 +67,7 @@ class LayoutTest extends TestCase
         $this->assertMenuAktif($admin, route('admin.guru.index'), 'Kelola Akun Guru');
         // Tab Aspek berada di bawah Data Master, jadi menu Data Master tetap aktif.
         $this->assertMenuAktif($admin, route('data-master.aspek.index'), 'Data Master');
-        $this->assertMenuAktif($guru, route('guru.riwayat-observasi'), 'Riwayat Observasi');
+        $this->assertMenuAktif($guru, route('guru.dashboard'), 'Dashboard');
     }
 
     public function test_halaman_login_dan_ganti_sandi_tidak_memakai_layout(): void
