@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DataMaster\AktivitasController;
 use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
+use App\Http\Controllers\Guru\ObservasiController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +58,20 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/riwayat-observasi', 'guru.riwayat_observasi')
         ->middleware('peran:guru')
         ->name('guru.riwayat-observasi');
+
+    // Data Observasi Perkembangan + formulir (guru saja).
+    Route::middleware('peran:guru')
+        ->prefix('guru/observasi')
+        ->name('guru.observasi.')
+        ->controller(ObservasiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/tambah', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{observasi}/edit', 'edit')->name('edit');
+            Route::put('/{observasi}', 'update')->name('update');
+            Route::delete('/{observasi}', 'destroy')->name('destroy');
+        });
 
     // PBI-2 Kelola Aktivitas dan Strategi Pembelajaran (admin dan guru).
     Route::middleware('peran:admin,guru')
