@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DataMaster\AktivitasController;
 use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
+use App\Http\Controllers\Guru\ObservasiController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -16,37 +17,6 @@ Route::bind('guru', fn (string $nilai) => User::where('peran', 'guru')->findOrFa
 
 // PBI-22 Landing page. Tidak mengalihkan otomatis; pengguna yang sudah masuk melihat tombol ke dashboard.
 Route::view('/', 'landing')->name('beranda');
-
-/*
-|--------------------------------------------------------------------------
-| Formulir Observasi (SEMENTARA tanpa login)
-|--------------------------------------------------------------------------
-| Nanti, setelah database & login siap, pindahkan grup ini ke dalam
-| Route::middleware('auth') dan tambahkan ->middleware('peran:guru').
-*/
-Route::prefix('guru/observasi')
-    ->name('guru.observasi.')
-    ->group(function () {
-        Route::view('/', 'formulir-pencatatan-observasi.index')->name('index');
-
-        Route::post('/', function (Request $request) {
-            $request->validate([
-                'kelas_id'             => ['required'],
-                'anak_id'              => ['required'],
-                'tanggal_observasi'    => ['required', 'date'],
-                'kegiatan'             => ['required', 'string', 'max:150'],
-                'indikator'            => ['required', 'array'],
-                'indikator.*'          => ['required', 'in:BSB,BSH,MB,BB'],
-                'deskripsi_pengamatan' => ['nullable', 'string', 'max:2000'],
-                'tindak_lanjut'        => ['nullable', 'string', 'max:2000'],
-            ]);
-
-            // TODO: pindahkan ke ObservasiController@store lalu simpan ke database
-            return redirect()
-                ->route('guru.observasi.index')
-                ->with('sukses', 'Observasi berhasil disimpan.');
-        })->name('store');
-    });
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
@@ -88,6 +58,20 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/riwayat-observasi', 'guru.riwayat_observasi')
         ->middleware('peran:guru')
         ->name('guru.riwayat-observasi');
+
+    // Data Observasi Perkembangan + formulir (guru saja).
+    Route::middleware('peran:guru')
+        ->prefix('guru/observasi')
+        ->name('guru.observasi.')
+        ->controller(ObservasiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/tambah', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{observasi}/edit', 'edit')->name('edit');
+            Route::put('/{observasi}', 'update')->name('update');
+            Route::delete('/{observasi}', 'destroy')->name('destroy');
+        });
 
     // PBI-2 Kelola Aktivitas dan Strategi Pembelajaran (admin dan guru).
     Route::middleware('peran:admin,guru')
@@ -131,4 +115,3 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{aturan}', 'destroy')->name('destroy');
         });
 });
-
