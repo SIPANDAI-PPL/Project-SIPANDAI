@@ -34,6 +34,6 @@ return [
         // PBI-11 Riwayat Observasi tidak masuk sidebar: halaman ini per anak
         // (butuh parameter anak), jadi dibuka dari Data Anak.
         // PBI-15
-        ['label' => 'Alternatif Strategi', 'rute' => 'alternatif-strategi.index', 'aktif' => 'alternatif-strategi.*'],
+        ['label' => 'Alternatif Strategi', 'rute' => 'guru.alternatif-strategi.index', 'aktif' => 'guru.alternatif-strategi.*'],
     ],
 ];

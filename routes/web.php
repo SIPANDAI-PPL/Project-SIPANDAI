@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DataMaster\AktivitasController;
 use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
+use App\Http\Controllers\Guru\AlternatifStrategiController;
 use App\Http\Controllers\Guru\ObservasiController;
 use App\Http\Controllers\Guru\RiwayatObservasiController;
 use App\Models\User;
@@ -54,6 +55,17 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/dashboard', 'guru.dashboard')
         ->middleware('peran:guru')
         ->name('guru.dashboard');
+
+    // PBI-15 Penyusunan Alternatif Strategi Berdasarkan Aturan.
+    Route::middleware('peran:guru')
+        ->prefix('guru/alternatif-strategi')
+        ->name('guru.alternatif-strategi.')
+        ->controller(AlternatifStrategiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/anak/{anak}', 'fokus')->name('anak');
+            Route::post('/anak/{anak}', 'store')->name('store');
+        });
 
     // PBI-11 Riwayat Observasi Anak dengan Filter.
     Route::get('/guru/anak/{anak}/riwayat-observasi', [RiwayatObservasiController::class, 'index'])
@@ -128,5 +140,4 @@ Route::middleware('auth')->group(function () {
             Route::patch('/{aturan}/aktifkan', 'aktifkan')->name('aktifkan');
             Route::delete('/{aturan}', 'destroy')->name('destroy');
         });
-
 });
