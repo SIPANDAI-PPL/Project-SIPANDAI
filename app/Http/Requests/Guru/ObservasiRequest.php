@@ -12,7 +12,19 @@ class ObservasiRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // akses dibatasi middleware auth + peran:guru di route
+        // NFR-04: guru hanya boleh mengubah observasi miliknya sendiri.
+        // Observasi milik guru lain dianggap tidak ada (404), dan pemeriksaan
+        // ini dijalankan sebelum validasi agar tidak membocorkan data.
+        $observasi = $this->route('observasi');
+
+        if ($observasi instanceof Observasi) {
+            abort_unless(
+                (int) $observasi->guru_id === (int) $this->user()?->id,
+                404
+            );
+        }
+
+        return true; // akses lain dibatasi middleware auth + peran:guru di route
     }
 
     public function rules(): array
@@ -22,11 +34,11 @@ class ObservasiRequest extends FormRequest
 
         return [
             'kelas_id' => [
-    'required',
-    'integer',
-    Rule::exists('kelas', 'id')
-        ->where('guru_id', $this->user()->id),
-],
+                'required',
+                'integer',
+                Rule::exists('kelas', 'id')
+                    ->where('guru_id', $this->user()->id),
+            ],
             'anak_id' => [
                 'required', 'integer',
                 Rule::exists('anak', 'id')->where(function ($q) use ($observasi) {

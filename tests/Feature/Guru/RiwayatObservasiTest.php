@@ -12,6 +12,7 @@ use App\Models\StrategiPembelajaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 // Fitur: PBI-11 Riwayat Observasi Anak dengan Filter
@@ -356,10 +357,30 @@ class RiwayatObservasiTest extends TestCase
     {
         $this->buatObservasi($this->anakKelasLain, '2026-10-10', 'Kognitif', 'Menyusun balok', 'Kelompok kecil', KategoriRespons::TerlibatAktif, 'Catatan anak kelas lain');
 
+        // Tombol kembali mengikuti route Data Anak bila sudah ada (PBI-5),
+        // dan sementara jatuh ke dashboard selama route itu belum terdaftar.
+        $tautanDataAnak = Route::has('guru.anak.index')
+            ? route('guru.anak.index')
+            : route('guru.dashboard');
+
         $this->actingAs($this->guruA)
             ->get(route('guru.riwayat-observasi', $this->anakKelasLain->id))
             ->assertForbidden()
+            ->assertSee('Akses ditolak')
+            ->assertSee('Anda tidak memiliki akses ke data anak ini')
+            ->assertSee('Kembali ke Data Anak')
+            ->assertSee('href="'.$tautanDataAnak.'"', false)
             ->assertDontSee('Catatan anak kelas lain');
+    }
+
+    public function test_halaman_403_tetap_memakai_layout_bersama(): void
+    {
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', $this->anakKelasLain->id))
+            ->assertForbidden()
+            ->assertSee('SIPANDAI')
+            ->assertSee($this->guruA->nama)
+            ->assertSee('Keluar');
     }
 
     public function test_tc_11_16_akses_tanpa_login_dialihkan_ke_halaman_login(): void
