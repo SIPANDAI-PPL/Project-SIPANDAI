@@ -69,6 +69,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/tambah', 'create')->name('create');
             Route::post('/', 'store')->name('store');
+
+            // PBI-8 Ubah dan Hapus Observasi beserta Riwayat Perubahan.
+            // Rute /tambah didaftarkan lebih dulu agar tidak tertangkap {observasi}.
+            Route::get('/{observasi}', 'show')->name('show');
+            Route::get('/{observasi}/ubah', 'edit')->name('edit');
+            Route::put('/{observasi}', 'update')->name('update');
+            Route::get('/{observasi}/riwayat', 'riwayat')->name('riwayat');
+            Route::delete('/{observasi}', 'destroy')->name('destroy');
         });
 
     // PBI-2 Kelola Aktivitas dan Strategi Pembelajaran (admin dan guru).
@@ -120,4 +128,5 @@ Route::middleware('auth')->group(function () {
             Route::patch('/{aturan}/aktifkan', 'aktifkan')->name('aktifkan');
             Route::delete('/{aturan}', 'destroy')->name('destroy');
         });
+
 });
