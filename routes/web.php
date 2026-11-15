@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AturanStrategiController;
+use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\KelolaAkunGuruController;
 use App\Http\Controllers\Auth\GantiKataSandiController;
 use App\Http\Controllers\Auth\LoginController;
@@ -139,5 +140,16 @@ Route::middleware('auth')->group(function () {
             Route::patch('/{aturan}/nonaktifkan', 'nonaktifkan')->name('nonaktifkan');
             Route::patch('/{aturan}/aktifkan', 'aktifkan')->name('aktifkan');
             Route::delete('/{aturan}', 'destroy')->name('destroy');
+        });
+
+    // PBI-3 Kelola Kelas, Tahun Ajaran, dan Penugasan Guru Pengampu (admin saja).
+    // Nama rute classes.* dipakai oleh config/menu.php.
+    Route::middleware('peran:admin')->prefix('classes')->name('classes.')
+        ->controller(KelasController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{kelas}', 'update')->name('update');
+            Route::patch('/{kelas}/guru-pengampu', 'tugaskanGuru')->name('guru-pengampu');
         });
 });
