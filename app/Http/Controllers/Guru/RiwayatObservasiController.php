@@ -10,6 +10,7 @@ use App\Models\Anak;
 use App\Models\AspekPerkembangan;
 use App\Models\Observasi;
 use App\Models\StrategiPembelajaran;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
@@ -17,12 +18,16 @@ class RiwayatObservasiController extends Controller
 {
     // Fitur: PBI-11 Riwayat Observasi Anak dengan Filter
 
-    public function index(FilterRiwayatObservasiRequest $request, Anak $anak): View
+    public function index(FilterRiwayatObservasiRequest $request, Anak $anak): View|Response
     {
         $kelas = $anak->kelas;
 
         // NFR-04: guru hanya boleh membuka riwayat anak di kelas yang diampu.
-        abort_unless($kelas !== null && $kelas->guru_id === $request->user()->id, 403, 'Akses ditolak.');
+        // Halaman 403 dibuat khusus fitur ini agar tetap memakai layout dan
+        // menyediakan tombol kembali ke Data Anak (sesuai mockup PBI-11).
+        if ($kelas === null || $kelas->guru_id !== $request->user()->id) {
+            return response()->view('guru.akses-ditolak', [], 403);
+        }
 
         $dasar = Observasi::query()->where('anak_id', $anak->id);
 
