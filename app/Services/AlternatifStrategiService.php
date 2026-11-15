@@ -99,6 +99,52 @@ class AlternatifStrategiService
             ->get();
     }
 
+    /**
+     * Kelompokkan pola (hasil susunUntukKelas) dan alternatif buatan guru menjadi satu item per anak, urut nama.
+     *
+     * @param  Collection<int, array>  $daftarPola
+     * @param  Collection<int, AlternatifStrategi>  $daftarManual
+     * @return Collection<int, array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool}>
+     */
+    public function kelompokkanPerAnak(Collection $daftarPola, Collection $daftarManual): Collection
+    {
+        $perAnak = [];
+
+        foreach ($daftarPola as $pola) {
+            $perAnak[$pola['anak']->id] ??= ['anak' => $pola['anak'], 'pola' => collect(), 'manual' => collect()];
+            $perAnak[$pola['anak']->id]['pola']->push($pola);
+        }
+
+        foreach ($daftarManual as $saran) {
+            $perAnak[$saran->anak_id] ??= ['anak' => $saran->anak, 'pola' => collect(), 'manual' => collect()];
+            $perAnak[$saran->anak_id]['manual']->push($saran);
+        }
+
+        return collect($perAnak)
+            ->map(fn (array $item) => $item + [
+                'punya_saran' => $item['manual']->isNotEmpty() || $item['pola']->contains(fn (array $pola) => $pola['saran'] !== null),
+            ])
+            ->sortBy(fn (array $item) => mb_strtolower($item['anak']->nama))
+            ->values();
+    }
+
+    /**
+     * Data satu anak untuk Mode Fokus. Saran tetap disusun lewat susunUntukKelas agar sama dengan halaman daftar.
+     *
+     * @return array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool}
+     */
+    public function dataAnak(Anak $anak): array
+    {
+        $kelas = $anak->kelas;
+
+        $item = $this->kelompokkanPerAnak(
+            $this->susunUntukKelas($kelas)->filter(fn (array $pola) => $pola['anak']->is($anak)),
+            $this->saranManual($kelas)->where('anak_id', $anak->id),
+        )->first();
+
+        return $item ?? ['anak' => $anak, 'pola' => collect(), 'manual' => collect(), 'punya_saran' => false];
+    }
+
     public function tambahManual(Anak $anak, int $strategiId, ?string $catatan): AlternatifStrategi
     {
         return AlternatifStrategi::create([

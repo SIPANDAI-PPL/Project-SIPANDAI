@@ -143,107 +143,106 @@
                 @forelse ($daftarBaris as $i => $baris)
                     @php
                         $anak = $baris['anak'];
-                        $saran = $baris['saran'];
-                        $aturan = $baris['aturan'] ?? null;
-                        $idBaris = "baris-{$baris['jenis']}-{$anak->id}-".($aturan?->id ?? $saran->id);
-
-                        if ($aturan) {
-                            $respons = $aturan->respons_pemicu->value;
-                            $memenuhi = $baris['jumlah'] >= $aturan->minimal_kejadian;
-                            $teksPola = "{$aturan->respons_pemicu->label()} ({$baris['jumlah']}x)".($aturan->aspek ? " pada aspek {$aturan->aspek->nama}" : '');
-                        }
-
-                        $dataDialog = [
-                            'url' => route('guru.alternatif-strategi.store', $anak),
-                            'anak_id' => $anak->id,
-                            'anak' => "{$anak->nama}, {$labelKelas($kelas)}",
-                            'pola' => $aturan ? $teksPola : 'Ditambahkan guru',
-                            'strategi' => $aturan?->strategiAsal->nama ?? '-',
-                        ];
+                        $daftarPolaAnak = $baris['pola'];
+                        $daftarSaranAturan = $daftarPolaAnak->pluck('saran')->filter();
+                        $daftarStrategiAsal = $daftarPolaAnak->pluck('aturan.strategiAsal')->unique('id');
                     @endphp
-                    <li id="{{ $idBaris }}" dusk="{{ $idBaris }}"
+                    <li id="baris-anak-{{ $anak->id }}" dusk="baris-anak-{{ $anak->id }}"
                         class="relative grid gap-4 rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50 lg:grid-cols-[1fr_1.2fr_1fr_1.2fr] lg:gap-6 lg:rounded-none lg:border-0 lg:px-6 lg:py-5">
-                        {{-- TODO PBI-16: arahkan ke route Mode Fokus anak ini setelah route tersedia. --}}
-                        <a href="#{{ $idBaris }}" class="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 lg:rounded-none"
-                            aria-label="Tinjau alternatif strategi untuk {{ $anak->nama }}"></a>
-
-                        {{-- Anak --}}
+                        {{-- Anak: tautan ke Mode Fokus. after:inset-0 membuat seluruh baris dapat diklik. --}}
                         <div>
                             <p class="{{ $kelasLabelSeluler }}">Anak</p>
-                            <div class="flex items-center gap-3">
+                            <a href="{{ route('guru.alternatif-strategi.anak', $anak) }}" dusk="tautan-anak-{{ $anak->id }}"
+                                class="group flex items-center gap-3 rounded-lg after:absolute after:inset-0 after:rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 lg:after:rounded-none">
                                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold {{ $kelasAvatar[$i % 4] }}">{{ mb_strtoupper(mb_substr($anak->nama, 0, 1)) }}</span>
-                                <div class="min-w-0">
-                                    <p class="font-semibold">{{ $anak->nama }}</p>
-                                    <p class="text-xs text-gray-500">{{ $anak->tanggal_lahir->age }} tahun <span class="mx-0.5">&bull;</span> {{ $labelKelas($kelas) }}</p>
-                                </div>
-                            </div>
+                                <span class="min-w-0">
+                                    <span class="block font-semibold text-gray-900 group-hover:text-indigo-900 group-hover:underline">{{ $anak->nama }}</span>
+                                    <span class="block text-xs text-gray-500">{{ $anak->tanggal_lahir->age }} tahun <span class="mx-0.5">&bull;</span> {{ $labelKelas($kelas) }}</span>
+                                </span>
+                            </a>
                         </div>
 
-                        @if ($aturan)
-                            {{-- Pola perilaku anak --}}
-                            <div>
-                                <p class="{{ $kelasLabelSeluler }}">Pola perilaku anak</p>
-                                <span @class([
-                                    'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                                    $kelasBadge[$respons] => $memenuhi,
-                                    'border-gray-200 bg-gray-100 text-gray-600' => ! $memenuhi,
-                                ]) dusk="badge-pola">
-                                    <span class="h-1.5 w-1.5 rounded-full {{ $memenuhi ? $kelasTitik[$respons] : 'bg-gray-400' }}"></span>
-                                    {{ $aturan->respons_pemicu->label() }} ({{ $baris['jumlah'] }}x)
-                                </span>
-                                @if ($aturan->aspek)
-                                    <p class="mt-2 text-sm text-gray-700">Aspek {{ $aturan->aspek->nama }}</p>
-                                @endif
-                                <p class="mt-1 text-xs text-gray-500">Observasi terakhir {{ $baris['tanggal']->last()->format('d/m/Y') }}</p>
-                            </div>
+                        {{-- Pola perilaku anak --}}
+                        <div>
+                            <p class="{{ $kelasLabelSeluler }}">Pola perilaku anak</p>
+                            @forelse ($daftarPolaAnak as $pola)
+                                @php
+                                    $aturan = $pola['aturan'];
+                                    $respons = $aturan->respons_pemicu->value;
+                                    $memenuhi = $pola['jumlah'] >= $aturan->minimal_kejadian;
+                                @endphp
+                                <div @class(['mt-3' => ! $loop->first])>
+                                    <span @class([
+                                        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                                        $kelasBadge[$respons] => $memenuhi,
+                                        'border-gray-200 bg-gray-100 text-gray-600' => ! $memenuhi,
+                                    ]) dusk="badge-pola">
+                                        <span class="h-1.5 w-1.5 rounded-full {{ $memenuhi ? $kelasTitik[$respons] : 'bg-gray-400' }}"></span>
+                                        {{ $aturan->respons_pemicu->label() }} ({{ $pola['jumlah'] }}x)
+                                    </span>
+                                    @if ($aturan->aspek)
+                                        <p class="mt-1.5 text-sm text-gray-700">Aspek {{ $aturan->aspek->nama }}</p>
+                                    @endif
+                                    <p class="mt-0.5 text-xs text-gray-500">Observasi terakhir {{ $pola['tanggal']->last()->format('d/m/Y') }}</p>
+                                </div>
+                            @empty
+                                <p class="text-sm text-gray-500">Belum ada pola dari aturan</p>
+                            @endforelse
+                        </div>
 
-                            {{-- Strategi yang digunakan --}}
-                            <div>
-                                <p class="{{ $kelasLabelSeluler }}">Strategi yang digunakan</p>
+                        {{-- Strategi yang digunakan --}}
+                        <div class="space-y-2">
+                            <p class="{{ $kelasLabelSeluler }}">Strategi yang digunakan</p>
+                            @forelse ($daftarStrategiAsal as $strategiAsal)
                                 <div class="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-                                    <p class="text-sm font-semibold">{{ $aturan->strategiAsal->nama }}</p>
-                                    @if ($aturan->strategiAsal->deskripsi)
-                                        <p class="mt-1 text-xs leading-relaxed text-gray-600">{{ $aturan->strategiAsal->deskripsi }}</p>
+                                    <p class="text-sm font-semibold">{{ $strategiAsal->nama }}</p>
+                                    @if ($strategiAsal->deskripsi)
+                                        <p class="mt-1 text-xs leading-relaxed text-gray-600">{{ $strategiAsal->deskripsi }}</p>
                                     @endif
                                 </div>
-                            </div>
-                        @else
-                            {{-- Alternatif buatan guru: tanpa pola dan strategi asal --}}
-                            <div class="lg:col-span-2">
-                                <p class="{{ $kelasLabelSeluler }}">Catatan guru</p>
-                                <span class="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-900" dusk="penanda-manual">Ditambahkan guru</span>
-                                <p class="mt-2 text-sm text-gray-700">{{ $saran->dasar_saran ?: 'Tanpa catatan.' }}</p>
-                            </div>
-                        @endif
+                            @empty
+                                <p class="text-sm text-gray-500">-</p>
+                            @endforelse
+                        </div>
 
-                        {{-- Rekomendasi strategi --}}
-                        <div>
+                        {{-- Rekomendasi strategi: saran dari aturan dan alternatif buatan guru --}}
+                        <div class="space-y-2">
                             <p class="{{ $kelasLabelSeluler }}">Rekomendasi strategi</p>
-                            @if ($saran)
+                            @foreach ($daftarSaranAturan as $saran)
                                 <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2.5" dusk="saran-{{ $saran->id }}">
                                     <p class="text-sm font-semibold text-indigo-900">{{ $saran->strategi->nama }}</p>
                                     @if ($saran->strategi->deskripsi)
                                         <p class="mt-1 text-xs leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
                                     @endif
                                 </div>
-                            @else
+                            @endforeach
+                            @foreach ($baris['manual'] as $saran)
+                                <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2.5" dusk="saran-{{ $saran->id }}">
+                                    <span class="inline-flex items-center rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[11px] font-medium text-indigo-900" dusk="penanda-manual">Ditambahkan guru</span>
+                                    <p class="mt-1.5 text-sm font-semibold text-indigo-900">{{ $saran->strategi->nama }}</p>
+                                    @if ($saran->strategi->deskripsi)
+                                        <p class="mt-1 text-xs leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
+                                    @endif
+                                    @if ($saran->dasar_saran)
+                                        <p class="mt-1.5 text-xs leading-relaxed text-gray-600"><span class="font-medium">Catatan guru:</span> {{ $saran->dasar_saran }}</p>
+                                    @endif
+                                </div>
+                            @endforeach
+                            @unless ($baris['punya_saran'])
                                 <div class="rounded-xl border border-dashed border-gray-300 px-3 py-2.5" dusk="belum-ada-alternatif">
                                     <p class="text-sm font-semibold">Belum ada alternatif</p>
-                                    <p class="mt-1 text-xs leading-relaxed text-gray-600">
-                                        @if ($memenuhi)
-                                            Strategi alternatif pada aturan ini sedang nonaktif.
-                                        @else
-                                            {{ $baris['jumlah'] }} dari minimal {{ $aturan->minimal_kejadian }} kejadian.
-                                        @endif
-                                    </p>
+                                    @foreach ($daftarPolaAnak as $pola)
+                                        <p class="mt-1 text-xs leading-relaxed text-gray-600">
+                                            {{ $pola['aturan']->respons_pemicu->label() }}:
+                                            @if ($pola['jumlah'] < $pola['aturan']->minimal_kejadian)
+                                                {{ $pola['jumlah'] }} dari minimal {{ $pola['aturan']->minimal_kejadian }} kejadian.
+                                            @else
+                                                strategi alternatif pada aturan ini sedang nonaktif.
+                                            @endif
+                                        </p>
+                                    @endforeach
                                 </div>
-                            @endif
-
-                            {{-- TODO PBI-16: pindahkan pemicu dialog ini ke halaman Mode Fokus. --}}
-                            <button type="button" data-tambah-alternatif='@json($dataDialog)'
-                                class="relative z-10 mt-2 w-full rounded-lg border border-dashed border-indigo-300 bg-white px-3 py-1.5 text-xs font-medium text-indigo-900 hover:bg-indigo-50">
-                                + Tambah alternatif
-                            </button>
+                            @endunless
                         </div>
                     </li>
                 @empty
@@ -289,6 +288,5 @@
             </div>
         </div>
 
-        @include('alternatif-strategi._dialog-tambah')
     @endif
 </x-layouts.app>

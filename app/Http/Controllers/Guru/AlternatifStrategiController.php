@@ -39,20 +39,12 @@ class AlternatifStrategiController extends Controller
         $cari = trim((string) $request->query('q', ''));
         $aspek = ctype_digit((string) $request->query('aspek', '')) ? (int) $request->query('aspek') : null;
 
-        $daftarPola = $kelas ? $this->layanan->susunUntukKelas($kelas) : collect();
-        $daftarManual = $kelas ? $this->layanan->saranManual($kelas) : collect();
+        // Satu item per anak: semua pola dan semua alternatif buatan guru milik anak itu.
+        $daftarAnak = $kelas
+            ? $this->layanan->kelompokkanPerAnak($this->layanan->susunUntukKelas($kelas), $this->layanan->saranManual($kelas))
+            : collect();
 
-        $baris = $daftarPola
-            ->map(fn (array $pola) => ['jenis' => 'pola'] + $pola)
-            ->concat($daftarManual->map(fn (AlternatifStrategi $saran) => [
-                'jenis' => 'manual',
-                'anak' => $saran->anak,
-                'saran' => $saran,
-            ]))
-            ->sortBy(fn (array $item) => $item['anak']->nama)
-            ->values();
-
-        $barisTersaring = $this->saring($baris, $cari, $aspek);
+        $barisTersaring = $this->saring($daftarAnak, $cari, $aspek);
         $halaman = LengthAwarePaginator::resolveCurrentPage();
 
         return view('alternatif-strategi.index', [
@@ -65,14 +57,32 @@ class AlternatifStrategiController extends Controller
                 $halaman,
                 ['path' => $request->url(), 'query' => $request->query()],
             ),
-            'jumlahPola' => $daftarPola->count(),
-            'jumlahSaran' => $daftarPola->whereNotNull('saran')->count() + $daftarManual->count(),
-            'jumlahBelumCukup' => $daftarPola->whereNull('saran')->count(),
+            // Ringkasan menghitung anak, bukan pola.
+            'jumlahPola' => $daftarAnak->filter(fn (array $item) => $item['pola']->isNotEmpty())->count(),
+            'jumlahSaran' => $daftarAnak->where('punya_saran', true)->count(),
+            'jumlahBelumCukup' => $daftarAnak->filter(fn (array $item) => $item['pola']->isNotEmpty() && ! $item['punya_saran'])->count(),
             'pilihanAspek' => AspekPerkembangan::query()->orderBy('id')->get(['id', 'nama']),
-            // Deskripsi dipakai untuk pratinjau di dialog tambah alternatif.
-            'pilihanStrategi' => StrategiPembelajaran::query()->aktif()->orderBy('nama')->get(['id', 'nama', 'deskripsi']),
             'cari' => $cari,
             'aspek' => $aspek,
+        ]);
+    }
+
+    /**
+     * Mode Fokus per anak. Hak akses sama dengan TambahAlternatifStrategiRequest (NFR-04).
+     */
+    public function fokus(Request $request, Anak $anak): View
+    {
+        abort_unless(
+            $anak->aktif && (int) $anak->kelas?->guru_id === (int) $request->user()->id,
+            403,
+            'Akses ditolak.',
+        );
+
+        return view('alternatif-strategi.fokus', [
+            'data' => $this->layanan->dataAnak($anak),
+            'kelas' => $anak->kelas,
+            // Deskripsi dipakai untuk pratinjau di dialog tambah alternatif.
+            'pilihanStrategi' => StrategiPembelajaran::query()->aktif()->orderBy('nama')->get(['id', 'nama', 'deskripsi']),
         ]);
     }
 
@@ -83,34 +93,38 @@ class AlternatifStrategiController extends Controller
         $this->layanan->tambahManual($anak, (int) $data['strategi_id'], $data['catatan']);
 
         return redirect()
-            ->route('guru.alternatif-strategi.index', ['kelas' => $anak->kelas_id])
+            ->route('guru.alternatif-strategi.anak', $anak)
             ->with('status', "Alternatif strategi untuk {$anak->nama} berhasil ditambahkan.");
     }
 
     /**
-     * Cari berdasarkan nama anak atau nama strategi; filter aspek hanya berlaku untuk pola dari aturan.
+     * Saring per anak. Anak tampil jika nama, salah satu pola, atau salah satu strategi cocok.
+     * Filter aspek hanya melihat pola, jadi anak yang hanya punya alternatif buatan guru ikut tersembunyi.
      *
-     * @param  Collection<int, array<string, mixed>>  $baris
+     * @param  Collection<int, array<string, mixed>>  $daftarAnak
      * @return Collection<int, array<string, mixed>>
      */
-    private function saring(Collection $baris, string $cari, ?int $aspek): Collection
+    private function saring(Collection $daftarAnak, string $cari, ?int $aspek): Collection
     {
-        return $baris
+        return $daftarAnak
             ->when($aspek !== null, fn (Collection $koleksi) => $koleksi->filter(
-                fn (array $item) => $item['jenis'] === 'pola'
-                    && ($item['aturan']->aspek_id === null || (int) $item['aturan']->aspek_id === $aspek)
+                fn (array $item) => $item['pola']->contains(
+                    fn (array $pola) => $pola['aturan']->aspek_id === null || (int) $pola['aturan']->aspek_id === $aspek
+                )
             ))
             ->when($cari !== '', function (Collection $koleksi) use ($cari) {
                 $kunci = mb_strtolower($cari);
 
                 return $koleksi->filter(function (array $item) use ($kunci) {
-                    $teks = implode(' ', array_filter([
-                        $item['anak']->nama,
-                        $item['anak']->nama_panggilan,
-                        $item['saran']?->strategi?->nama,
-                        $item['jenis'] === 'pola' ? $item['aturan']->strategiAsal->nama : null,
-                        $item['jenis'] === 'pola' ? $item['aturan']->strategiAlternatif->nama : null,
-                    ]));
+                    $teks = collect([$item['anak']->nama, $item['anak']->nama_panggilan])
+                        ->concat($item['pola']->flatMap(fn (array $pola) => [
+                            $pola['aturan']->strategiAsal->nama,
+                            $pola['aturan']->strategiAlternatif->nama,
+                            $pola['saran']?->strategi?->nama,
+                        ]))
+                        ->concat($item['manual']->map(fn (AlternatifStrategi $saran) => $saran->strategi?->nama))
+                        ->filter()
+                        ->implode(' ');
 
                     return str_contains(mb_strtolower($teks), $kunci);
                 });
