@@ -9,7 +9,6 @@ use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
 use App\Http\Controllers\Guru\ObservasiController;
 use App\Http\Controllers\Guru\RiwayatObservasiController;
-use App\Http\Controllers\KelolaObservasiController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -56,13 +55,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('peran:guru')
         ->name('guru.dashboard');
 
-    // PBI-8: masih tahap tampilan, data observasi berasal dari data dummy di controller.
-    Route::get('/observasi/{id}/kelola', [KelolaObservasiController::class, 'show'])
-        ->name('observasi.kelola.show');
-
-    Route::get('/observasi/{id}/kelola/ubah', [KelolaObservasiController::class, 'edit'])
-        ->name('observasi.kelola.edit');
-
     // PBI-11 Riwayat Observasi Anak dengan Filter.
     Route::get('/guru/anak/{anak}/riwayat-observasi', [RiwayatObservasiController::class, 'index'])
         ->middleware('peran:guru')
@@ -77,6 +69,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/tambah', 'create')->name('create');
             Route::post('/', 'store')->name('store');
+
+            // PBI-8 Ubah dan Hapus Observasi beserta Riwayat Perubahan.
+            // Rute /tambah didaftarkan lebih dulu agar tidak tertangkap {observasi}.
+            Route::get('/{observasi}', 'show')->name('show');
+            Route::get('/{observasi}/ubah', 'edit')->name('edit');
+            Route::put('/{observasi}', 'update')->name('update');
+            Route::get('/{observasi}/riwayat', 'riwayat')->name('riwayat');
+            Route::delete('/{observasi}', 'destroy')->name('destroy');
         });
 
     // PBI-2 Kelola Aktivitas dan Strategi Pembelajaran (admin dan guru).
