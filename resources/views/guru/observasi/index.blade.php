@@ -150,6 +150,7 @@
                             <th scope="col" class="px-4 py-4">Tanggal</th>
                             <th scope="col" class="px-4 py-4">Aktivitas Observasi</th>
                             <th scope="col" class="px-4 py-4">Respons Anak</th>
+                            <th scope="col" class="px-4 py-4 text-right">Aksi</th>
                         </tr>
                     </thead>
 
@@ -198,10 +199,21 @@
                                         {{ $o->kategori_respons->label() }}
                                     </span>
                                 </td>
+
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center justify-end gap-3 text-sm font-medium">
+                                        <a href="{{ route('guru.observasi.show', $o) }}"
+                                            class="text-indigo-900 hover:underline">Detail</a>
+                                        <a href="{{ route('guru.observasi.edit', $o) }}"
+                                            class="text-indigo-900 hover:underline">Ubah</a>
+                                        <a href="{{ route('guru.observasi.riwayat', $o) }}"
+                                            class="text-gray-600 hover:underline">Riwayat</a>
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-sm text-gray-500">
+                                <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">
                                     {{ $adaFilter
                                         ? 'Tidak ada observasi yang cocok dengan pencarian Anda.'
                                         : 'Belum ada data observasi pada tahun ajaran ini.' }}
