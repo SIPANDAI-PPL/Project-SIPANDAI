@@ -1,1 +1,1 @@
-@[AGENTS.md](http://AGENTS.md)
+@AGENTS.md

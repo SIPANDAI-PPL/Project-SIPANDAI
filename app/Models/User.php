@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -57,5 +58,30 @@ class User extends Authenticatable
     public function ruteDashboard(): string
     {
         return $this->peran === 'admin' ? 'admin.dashboard' : 'guru.dashboard';
+    }
+
+    public function kelasDiampu(): HasMany
+    {
+        return $this->hasMany(Kelas::class, 'guru_id');
+    }
+
+    public function rpp(): HasMany
+    {
+        return $this->hasMany(Rpp::class, 'guru_id');
+    }
+
+    public function observasi(): HasMany
+    {
+        return $this->hasMany(Observasi::class, 'guru_id');
+    }
+
+    public function laporan(): HasMany
+    {
+        return $this->hasMany(Laporan::class, 'guru_id');
+    }
+
+    public function riwayatPerubahan(): HasMany
+    {
+        return $this->hasMany(RiwayatPerubahan::class, 'dilakukan_oleh');
     }
 }
