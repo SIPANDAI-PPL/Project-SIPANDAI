@@ -1,13 +1,5 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Profil Anak - SIPANDAI</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-gray-100 p-4 font-sans text-gray-900">
-    <main class="mx-auto w-full max-w-4xl">
+<x-layouts.app title="Profil Anak">
+    <div class="mx-auto w-full max-w-4xl">
         <a href="{{ route('guru.anak.index') }}" class="text-sm text-indigo-900 underline">← Kembali ke Data Anak</a>
 
         <section class="mt-3 rounded-lg bg-white p-6 shadow">
@@ -38,11 +30,10 @@
         </section>
 
         <p class="mt-4 text-sm text-gray-500">Tren respons dan observasi terbaru dikerjakan di PBI-13.</p>
-    </main>
+    </div>
 
     @include('guru.anak._modal-ubah')
     @include('guru.anak._modal-nonaktifkan')
     @include('guru.anak._modal-aktifkan')
     @include('guru.anak._script-modal')
-</body>
-</html>
+</x-layouts.app>

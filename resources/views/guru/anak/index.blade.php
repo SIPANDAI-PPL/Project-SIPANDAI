@@ -1,13 +1,5 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Kelola Data Anak - SIPANDAI</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="min-h-screen bg-gray-100 p-4 font-sans text-gray-900">
-    <main class="mx-auto w-full max-w-4xl">
+<x-layouts.app title="Kelola Data Anak">
+    <div class="mx-auto w-full max-w-4xl">
         <div class="flex items-center justify-between">
             <h1 class="text-2xl font-semibold">Kelola Data Anak</h1>
             <button type="button" data-modal-buka="modal-tambah"
@@ -57,9 +49,8 @@
                 @endforelse
             </div>
         </section>
-    </main>
+    </div>
 
     @include('guru.anak._modal-tambah', ['daftarKelas' => $daftarKelas])
     @include('guru.anak._script-modal')
-</body>
-</html>
+</x-layouts.app>

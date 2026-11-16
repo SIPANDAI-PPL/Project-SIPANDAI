@@ -8,4 +8,221 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-jakarta: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-poppins: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+
+    /* PBI-22 Landing page. Pakai dengan motion-safe:. */
+    --animate-naik: naik 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    --animate-panda-muncul: panda-muncul 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    --animate-melayang: melayang 5s ease-in-out infinite;
+    --animate-denyut: denyut 6s ease-in-out infinite;
+
+    @keyframes naik {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+    }
+
+    @keyframes panda-muncul {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+    }
+
+    @keyframes melayang {
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    @keyframes denyut {
+        50% {
+            opacity: 0.8;
+            transform: scale(1.04);
+        }
+    }
+
+    /* PBI-22: kartu login/ganti sandi muncul halus. Pakai dengan motion-safe:animate-muncul. */
+    --animate-muncul: muncul 250ms ease-out both;
+
+    @keyframes muncul {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| PBI-22 Motion bersama
+|--------------------------------------------------------------------------
+| Semua animasi di bawah hanya aktif jika pengguna tidak meminta gerak dikurangi
+| (prefers-reduced-motion). Tanpa motion, perilaku dan tampilan akhirnya sama.
+*/
+
+/* Select native: panah sendiri, hover halus. Tidak berlapis supaya mengalahkan px-* bawaan. */
+select:not([multiple]):not([size]) {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236B7280' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.1rem;
+    padding-right: 2.5rem;
+    print-color-adjust: exact;
+    cursor: pointer;
+}
+
+select:not([multiple]):not([size]):hover:not(:focus):not(:disabled):not(.border-red-500) {
+    border-color: #9ca3af;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    /* Pindah halaman: header dan sidebar diam, hanya konten yang berganti. */
+    @view-transition {
+        navigation: auto;
+    }
+
+    ::view-transition-group(root) {
+        animation-duration: 180ms;
+    }
+
+    ::view-transition-old(konten) {
+        animation: 120ms ease-in both konten-keluar;
+    }
+
+    ::view-transition-new(konten) {
+        animation: 200ms ease-out both konten-masuk;
+    }
+
+    /* Header dan sidebar identik antarhalaman; crossfade singkat menghaluskan perpindahan item aktif. */
+    ::view-transition-old(sidebar),
+    ::view-transition-new(sidebar) {
+        animation-duration: 200ms;
+    }
+
+    @keyframes konten-keluar {
+        to {
+            opacity: 0;
+        }
+    }
+
+    @keyframes konten-masuk {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+    }
+
+    @layer base {
+        select {
+            transition:
+                border-color 150ms ease-out,
+                box-shadow 150ms ease-out;
+        }
+
+        /* Dialog: modal fade + scale, drawer geser dari kanan. Tutup sedikit lebih cepat (160ms). */
+        dialog {
+            opacity: 0;
+            scale: 0.97;
+            transition:
+                opacity 160ms ease-in,
+                scale 160ms ease-in,
+                translate 160ms ease-in,
+                overlay 160ms ease-in allow-discrete,
+                display 160ms ease-in allow-discrete;
+        }
+
+        dialog[open] {
+            opacity: 1;
+            scale: 1;
+            transition-duration: 220ms;
+            transition-timing-function: ease-out;
+        }
+
+        dialog[data-drawer] {
+            opacity: 1;
+            scale: 1;
+            translate: 100% 0;
+        }
+
+        dialog[data-drawer][open] {
+            translate: 0 0;
+        }
+
+        dialog::backdrop {
+            opacity: 0;
+            transition:
+                opacity 160ms ease-in,
+                overlay 160ms ease-in allow-discrete,
+                display 160ms ease-in allow-discrete;
+        }
+
+        dialog[open]::backdrop {
+            opacity: 1;
+            transition-duration: 220ms;
+            transition-timing-function: ease-out;
+        }
+
+        /* Menu aksi titik tiga dan popover lain: fade + scale dari pojok kanan atas. */
+        [data-menu-isi] {
+            transform-origin: top right;
+            transition:
+                opacity 150ms ease-out,
+                scale 150ms ease-out,
+                display 150ms ease-out allow-discrete;
+        }
+
+        [data-menu-isi].hidden {
+            opacity: 0;
+            scale: 0.95;
+        }
+    }
+
+    /*
+     * Landing: elemen [data-muncul] tampil (fade + naik 16px) saat masuk layar.
+     * Hanya jika JS aktif (kelas .js di <html>); tanpa JS konten langsung tampil.
+     * --urutan memberi jeda 60ms antarkartu.
+     */
+    @layer components {
+        .js [data-muncul] {
+            transition:
+                opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+                translate 500ms cubic-bezier(0.22, 1, 0.36, 1);
+            transition-delay: calc(var(--urutan, 0) * 60ms);
+        }
+
+        .js [data-muncul]:not(.terlihat) {
+            opacity: 0;
+            translate: 0 16px;
+        }
+    }
+
+    @starting-style {
+        dialog[open] {
+            opacity: 0;
+            scale: 0.97;
+        }
+
+        dialog[data-drawer][open] {
+            opacity: 1;
+            scale: 1;
+            translate: 100% 0;
+        }
+
+        dialog[open]::backdrop {
+            opacity: 0;
+        }
+
+        [data-menu-isi]:not(.hidden) {
+            opacity: 0;
+            scale: 0.95;
+        }
+    }
 }

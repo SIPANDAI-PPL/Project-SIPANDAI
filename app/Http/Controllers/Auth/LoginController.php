@@ -57,6 +57,10 @@ class LoginController extends Controller
         Auth::login($pengguna);
         $request->session()->regenerate();
 
+        if ($pengguna->wajib_ganti_sandi) {
+            return redirect()->route('kata-sandi.edit');
+        }
+
         return redirect()->route($pengguna->ruteDashboard());
     }
 

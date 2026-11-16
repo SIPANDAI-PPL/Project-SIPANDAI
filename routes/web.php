@@ -1,13 +1,27 @@
 <?php
 
+use App\Http\Controllers\Admin\AturanStrategiController;
+use App\Http\Controllers\Admin\KelasController;
+use App\Http\Controllers\Admin\KelolaAkunGuruController;
+use App\Http\Controllers\Auth\GantiKataSandiController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DataMaster\AktivitasController;
+use App\Http\Controllers\DataMaster\AspekPerkembanganController;
+use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
+use App\Http\Controllers\Guru\AlternatifStrategiController;
 use App\Http\Controllers\Guru\KelolaDataAnakController;
+use App\Http\Controllers\Guru\ObservasiController;
+use App\Http\Controllers\Guru\RingkasanPolaResponsController;
+use App\Http\Controllers\Guru\RiwayatObservasiController;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// {guru} hanya cocok dengan akun berperan guru; akun admin menghasilkan 404.
+Route::bind('guru', fn (string $nilai) => User::where('peran', 'guru')->findOrFail($nilai));
+
+// PBI-22 Landing page.
+Route::view('/', 'landing')->name('beranda');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
@@ -17,6 +31,9 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
+    Route::get('/ganti-kata-sandi', [GantiKataSandiController::class, 'create'])->name('kata-sandi.edit');
+    Route::put('/ganti-kata-sandi', [GantiKataSandiController::class, 'update'])->name('kata-sandi.update');
+
     Route::get('/dashboard', function (Request $request) {
         return redirect()->route($request->user()->ruteDashboard());
     })->name('dashboard');
@@ -25,12 +42,133 @@ Route::middleware('auth')->group(function () {
         ->middleware('peran:admin')
         ->name('admin.dashboard');
 
+    Route::middleware('peran:admin')
+        ->prefix('admin/guru')
+        ->name('admin.guru.')
+        ->controller(KelolaAkunGuruController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{guru}', 'update')->name('update');
+            Route::patch('/{guru}/nonaktifkan', 'nonaktifkan')->name('nonaktifkan');
+            Route::patch('/{guru}/aktifkan', 'aktifkan')->name('aktifkan');
+            Route::post('/{guru}/reset-kata-sandi', 'resetKataSandi')->name('reset-kata-sandi');
+        });
+
     Route::view('/guru/dashboard', 'guru.dashboard')
         ->middleware('peran:guru')
         ->name('guru.dashboard');
 
+    // PBI-5 Kelola Data Dasar Anak.
     Route::middleware('peran:guru')->prefix('guru/anak')->name('guru.anak.')->group(function () {
         Route::get('/', [KelolaDataAnakController::class, 'index'])->name('index');
         Route::get('/{anak}', [KelolaDataAnakController::class, 'show'])->whereNumber('anak')->name('show');
     });
+
+    // PBI-15 Penyusunan Alternatif Strategi Berdasarkan Aturan.
+    Route::middleware('peran:guru')
+        ->prefix('guru/alternatif-strategi')
+        ->name('guru.alternatif-strategi.')
+        ->controller(AlternatifStrategiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/anak/{anak}', 'fokus')->name('anak');
+            Route::post('/anak/{anak}', 'store')->name('store');
+            // PBI-16 Tinjau, Pilih, atau Abaikan Alternatif Strategi.
+            Route::patch('/{alternatif}/status', 'ubahStatus')->whereNumber('alternatif')->name('status');
+        });
+
+    // PBI-11 Riwayat Observasi Anak dengan Filter.
+    Route::get('/guru/anak/{anak}/riwayat-observasi', [RiwayatObservasiController::class, 'index'])
+        ->middleware('peran:guru')
+        ->name('guru.riwayat-observasi');
+
+    // PBI-12 Ringkasan Pola Respons Anak (guru saja, NFR-04 dicek di controller).
+    Route::middleware('peran:guru')
+        ->name('guru.pola-respons.')
+        ->controller(RingkasanPolaResponsController::class)
+        ->group(function () {
+            Route::get('/guru/pola-respons', 'index')->name('index');
+            Route::get('/guru/anak/{anak}/pola-respons', 'show')->name('anak');
+        });
+
+    // PBI-7 Formulir pencatatan observasi (guru saja).
+    Route::middleware('peran:guru')
+        ->prefix('guru/observasi')
+        ->name('guru.observasi.')
+        ->controller(ObservasiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/tambah', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+
+            // PBI-8 Ubah dan Hapus Observasi beserta Riwayat Perubahan.
+            // Rute /tambah didaftarkan lebih dulu agar tidak tertangkap {observasi}.
+            Route::get('/{observasi}', 'show')->name('show');
+            Route::get('/{observasi}/ubah', 'edit')->name('edit');
+            Route::put('/{observasi}', 'update')->name('update');
+            Route::get('/{observasi}/riwayat', 'riwayat')->name('riwayat');
+            Route::delete('/{observasi}', 'destroy')->name('destroy');
+        });
+
+    // PBI-2 Kelola Aktivitas dan Strategi Pembelajaran (admin dan guru).
+    Route::middleware('peran:admin,guru')
+        ->prefix('data-master')
+        ->name('data-master.')
+        ->group(function () {
+            Route::get('/aktivitas', [AktivitasController::class, 'index'])->name('aktivitas.index');
+            Route::post('/aktivitas', [AktivitasController::class, 'store'])->name('aktivitas.store');
+            Route::put('/aktivitas/{aktivitas}', [AktivitasController::class, 'update'])->name('aktivitas.update');
+            Route::patch('/aktivitas/{aktivitas}/nonaktifkan', [AktivitasController::class, 'nonaktifkan'])->name('aktivitas.nonaktifkan');
+            Route::patch('/aktivitas/{aktivitas}/aktifkan', [AktivitasController::class, 'aktifkan'])->name('aktivitas.aktifkan');
+            Route::delete('/aktivitas/{aktivitas}', [AktivitasController::class, 'destroy'])->name('aktivitas.destroy');
+
+            Route::get('/strategi', [StrategiPembelajaranController::class, 'index'])->name('strategi.index');
+            Route::post('/strategi', [StrategiPembelajaranController::class, 'store'])->name('strategi.store');
+            Route::put('/strategi/{strategi}', [StrategiPembelajaranController::class, 'update'])->name('strategi.update');
+            Route::patch('/strategi/{strategi}/nonaktifkan', [StrategiPembelajaranController::class, 'nonaktifkan'])->name('strategi.nonaktifkan');
+            Route::patch('/strategi/{strategi}/aktifkan', [StrategiPembelajaranController::class, 'aktifkan'])->name('strategi.aktifkan');
+            Route::delete('/strategi/{strategi}', [StrategiPembelajaranController::class, 'destroy'])->name('strategi.destroy');
+        });
+
+    // PBI-4 Kelola Aspek Perkembangan (admin saja).
+    Route::middleware('peran:admin')
+        ->prefix('data-master')
+        ->name('data-master.')
+        ->group(function () {
+            Route::controller(AspekPerkembanganController::class)
+                ->prefix('aspek')
+                ->name('aspek.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'store')->name('store');
+                    Route::put('/{aspek}', 'update')->name('update');
+                    Route::delete('/{aspek}', 'destroy')->name('destroy');
+                });
+        });
+
+    // PBI-4 Kelola Aturan Alternatif Strategi (admin saja).
+    Route::middleware('peran:admin')
+        ->prefix('admin/aturan-strategi')
+        ->name('admin.aturan-strategi.')
+        ->controller(AturanStrategiController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{aturan}', 'update')->name('update');
+            Route::patch('/{aturan}/nonaktifkan', 'nonaktifkan')->name('nonaktifkan');
+            Route::patch('/{aturan}/aktifkan', 'aktifkan')->name('aktifkan');
+            Route::delete('/{aturan}', 'destroy')->name('destroy');
+        });
+
+    // PBI-3 Kelola Kelas, Tahun Ajaran, dan Penugasan Guru Pengampu (admin saja).
+    // Nama rute classes.* dipakai oleh config/menu.php.
+    Route::middleware('peran:admin')->prefix('classes')->name('classes.')
+        ->controller(KelasController::class)
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{kelas}', 'update')->name('update');
+            Route::patch('/{kelas}/guru-pengampu', 'tugaskanGuru')->name('guru-pengampu');
+        });
 });

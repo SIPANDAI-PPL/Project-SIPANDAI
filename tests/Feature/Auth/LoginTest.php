@@ -192,12 +192,20 @@ class LoginTest extends TestCase
 
     public function test_tc_01_18_login_dengan_kata_sandi_lama_setelah_reset_ditolak(): void
     {
+        $admin = User::factory()->admin()->create();
         $guru = User::factory()->create([
             'nama_pengguna' => 'ayurizki',
             'kata_sandi' => 'SandiLama#2026',
         ]);
 
-        $guru->update(['kata_sandi' => 'SandiBaru#2026']);
+        $this->actingAs($admin)
+            ->post("/admin/guru/{$guru->id}/reset-kata-sandi")
+            ->assertRedirect('/admin/guru');
+
+        $sandiSementara = session('sandi_sementara')['kata_sandi'];
+
+        $this->post('/logout');
+        $this->assertGuest();
 
         $this->post('/login', [
             'login' => 'ayurizki',
@@ -205,6 +213,13 @@ class LoginTest extends TestCase
         ])->assertSessionHasErrors(['login' => 'Email/nama pengguna atau kata sandi salah.']);
 
         $this->assertGuest();
+
+        $this->post('/login', [
+            'login' => 'ayurizki',
+            'kata_sandi' => $sandiSementara,
+        ])->assertRedirect('/ganti-kata-sandi');
+
+        $this->assertAuthenticatedAs($guru);
     }
 
     public function test_kata_sandi_tersimpan_dalam_bentuk_hash(): void
