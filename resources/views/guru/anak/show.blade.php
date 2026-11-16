@@ -1,6 +1,10 @@
 <x-layouts.app title="Profil Anak">
     <div class="mx-auto w-full max-w-4xl">
-        <a href="{{ route('guru.anak.index') }}" class="text-sm text-indigo-900 underline">← Kembali ke Data Anak</a>
+        <a href="{{ route('guru.anak.index', ['kelas' => $anak['kelas_id']]) }}" class="text-sm text-indigo-900 underline">← Kembali ke Data Anak</a>
+
+        @if (session('status'))
+            <p class="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">{{ session('status') }}</p>
+        @endif
 
         <section class="mt-3 rounded-lg bg-white p-6 shadow">
             <div class="flex items-start gap-4">
@@ -24,12 +28,14 @@
             </div>
 
             <div class="mt-4 grid grid-cols-2 gap-2">
-                <a href="#" class="rounded bg-indigo-900 px-4 py-2 text-center font-medium text-white hover:bg-indigo-800">Catat observasi</a>
-                <a href="#" class="rounded border border-indigo-900 px-4 py-2 text-center font-medium text-indigo-900 hover:bg-gray-50">Riwayat Observasi</a>
+                @if ($anak['aktif'])
+                    <a href="{{ route('guru.observasi.create') }}" class="rounded bg-indigo-900 px-4 py-2 text-center font-medium text-white hover:bg-indigo-800">Catat observasi</a>
+                @else
+                    <span class="cursor-not-allowed rounded bg-gray-200 px-4 py-2 text-center font-medium text-gray-500" title="Anak nonaktif tidak bisa dicatat observasinya">Catat observasi</span>
+                @endif
+                <a href="{{ route('guru.riwayat-observasi', $anak['id']) }}" class="rounded border border-indigo-900 px-4 py-2 text-center font-medium text-indigo-900 hover:bg-gray-50">Riwayat Observasi</a>
             </div>
         </section>
-
-        <p class="mt-4 text-sm text-gray-500">Tren respons dan observasi terbaru dikerjakan di PBI-13.</p>
     </div>
 
     @include('guru.anak._modal-ubah')

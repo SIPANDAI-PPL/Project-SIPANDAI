@@ -6,11 +6,13 @@
             Data anak dan seluruh riwayat observasinya tetap tersimpan, dan anak dapat diaktifkan kembali.
         </p>
 
-        <div class="mt-6 flex gap-2">
+        <form method="POST" action="{{ route('guru.anak.nonaktifkan', $anak['id']) }}" class="mt-6 flex gap-2">
+            @csrf
+            @method('PATCH')
             <button type="button" data-modal-tutup
                 class="rounded border border-gray-300 px-4 py-2 font-medium hover:bg-gray-50">Batal</button>
-            <button type="button" data-modal-tutup
+            <button type="submit"
                 class="rounded bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700">Nonaktifkan</button>
-        </div>
+        </form>
     </div>
 </div>
