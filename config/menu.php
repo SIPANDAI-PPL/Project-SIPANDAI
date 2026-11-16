@@ -33,6 +33,7 @@ return [
         ['label' => 'Observasi', 'rute' => 'guru.observasi.index', 'aktif' => 'guru.observasi.*'],
         // PBI-11 Riwayat Observasi tidak masuk sidebar: halaman ini per anak
         // (butuh parameter anak), jadi dibuka dari Data Anak.
+        ['label' => 'Pola Respons', 'rute' => 'guru.pola-respons.index', 'aktif' => 'guru.pola-respons.*'],
         // PBI-15
         ['label' => 'Alternatif Strategi', 'rute' => 'guru.alternatif-strategi.index', 'aktif' => 'guru.alternatif-strategi.*'],
     ],
