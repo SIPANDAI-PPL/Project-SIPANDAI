@@ -3,26 +3,29 @@
 namespace Tests\Browser;
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class ObservasiTest extends DuskTestCase
 {
+    use DatabaseMigrations;
+
     public function test_guru_dapat_membuka_halaman_observasi(): void
     {
-        $guru = User::where('peran', 'guru')->firstOrFail();
+        $guru = User::factory()->create();
 
         $this->browse(function (Browser $browser) use ($guru) {
             $browser->loginAs($guru)
                 ->visit('/guru/observasi')
                 ->assertSee('Data Observasi Perkembangan')
-                ->assertSee('Tambah observasi');
+                ->assertSee('Tambah Observasi');
         });
     }
 
     public function test_guru_dapat_membuka_formulir_observasi(): void
     {
-        $guru = User::where('peran', 'guru')->firstOrFail();
+        $guru = User::factory()->create();
 
         $this->browse(function (Browser $browser) use ($guru) {
             $browser->loginAs($guru)
