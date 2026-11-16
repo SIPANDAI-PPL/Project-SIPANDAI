@@ -210,7 +210,8 @@
                             <p class="{{ $kelasLabelSeluler }}">Rekomendasi strategi</p>
                             @foreach ($daftarSaranAturan as $saran)
                                 <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2.5" dusk="saran-{{ $saran->id }}">
-                                    <p class="text-sm font-semibold text-indigo-900">{{ $saran->strategi->nama }}</p>
+                                    @include('alternatif-strategi._badge-status', ['status' => $saran->status])
+                                    <p class="mt-1.5 text-sm font-semibold text-indigo-900">{{ $saran->strategi->nama }}</p>
                                     @if ($saran->strategi->deskripsi)
                                         <p class="mt-1 text-xs leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
                                     @endif
@@ -218,7 +219,10 @@
                             @endforeach
                             @foreach ($baris['manual'] as $saran)
                                 <div class="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2.5" dusk="saran-{{ $saran->id }}">
-                                    <span class="inline-flex items-center rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[11px] font-medium text-indigo-900" dusk="penanda-manual">Ditambahkan guru</span>
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        @include('alternatif-strategi._badge-status', ['status' => $saran->status])
+                                        <span class="inline-flex items-center rounded-full border border-indigo-200 bg-white px-2 py-0.5 text-[11px] font-medium text-indigo-900" dusk="penanda-manual">Ditambahkan guru</span>
+                                    </div>
                                     <p class="mt-1.5 text-sm font-semibold text-indigo-900">{{ $saran->strategi->nama }}</p>
                                     @if ($saran->strategi->deskripsi)
                                         <p class="mt-1 text-xs leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>

@@ -7,8 +7,10 @@ use App\Models\Anak;
 use App\Models\AturanStrategi;
 use App\Models\Kelas;
 use App\Models\Observasi;
+use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * PBI-15 Penyusunan alternatif strategi berdasarkan aturan.
@@ -18,6 +20,19 @@ use Illuminate\Support\Facades\DB;
 class AlternatifStrategiService
 {
     public const STATUS_DISARANKAN = 'disarankan';
+
+    public const STATUS_DIPILIH = 'dipilih';
+
+    public const STATUS_DIABAIKAN = 'diabaikan';
+
+    /**
+     * PBI-16: transisi status yang boleh dilakukan guru, [status lama => daftar status baru].
+     * Alternatif yang sudah dipilih tidak bisa diubah lagi.
+     */
+    private const TRANSISI = [
+        self::STATUS_DISARANKAN => [self::STATUS_DIPILIH, self::STATUS_DIABAIKAN],
+        self::STATUS_DIABAIKAN => [self::STATUS_DIPILIH],
+    ];
 
     /**
      * Susun saran untuk semua anak aktif di kelas, lalu kembalikan daftar pola respons.
@@ -83,7 +98,7 @@ class AlternatifStrategiService
     }
 
     /**
-     * Alternatif yang ditambahkan guru sendiri (tanpa aturan) dan masih berstatus disarankan.
+     * Alternatif yang ditambahkan guru sendiri (tanpa aturan), semua status (PBI-16).
      *
      * @return Collection<int, AlternatifStrategi>
      */
@@ -91,7 +106,6 @@ class AlternatifStrategiService
     {
         return AlternatifStrategi::query()
             ->whereNull('aturan_id')
-            ->where('status', self::STATUS_DISARANKAN)
             ->whereHas('anak', fn ($query) => $query->where('kelas_id', $kelas->id)->where('aktif', true))
             ->with(['anak', 'strategi'])
             ->orderByDesc('dibuat_pada')
@@ -157,6 +171,69 @@ class AlternatifStrategiService
     }
 
     /**
+     * PBI-16: alasan perubahan status ditolak, atau null jika boleh.
+     * Dipakai UbahStatusAlternatifRequest dan dicek ulang di ubahStatus.
+     */
+    public function alasanTolak(AlternatifStrategi $alternatif, string $statusBaru): ?string
+    {
+        if ($alternatif->status === self::STATUS_DIPILIH) {
+            return 'Alternatif yang sudah dipilih tidak bisa diubah.';
+        }
+
+        if ($alternatif->status === $statusBaru) {
+            return "Alternatif ini sudah berstatus {$statusBaru}.";
+        }
+
+        if (! in_array($statusBaru, self::TRANSISI[$alternatif->status] ?? [], true)) {
+            return 'Perubahan status ini tidak diizinkan.';
+        }
+
+        // Hanya satu alternatif dipilih per anak.
+        $sudahAdaDipilih = $statusBaru === self::STATUS_DIPILIH && AlternatifStrategi::query()
+            ->where('anak_id', $alternatif->anak_id)
+            ->where('status', self::STATUS_DIPILIH)
+            ->whereKeyNot($alternatif->id)
+            ->exists();
+
+        return $sudahAdaDipilih ? 'Sudah ada alternatif yang dipilih untuk anak ini.' : null;
+    }
+
+    /**
+     * PBI-16: ubah status alternatif. Baris anak dikunci agar dua permintaan bersamaan
+     * tidak menghasilkan dua alternatif dipilih.
+     *
+     * @throws ValidationException jika transisi tidak diizinkan.
+     */
+    public function ubahStatus(AlternatifStrategi $alternatif, string $statusBaru, User $guru): AlternatifStrategi
+    {
+        // $guru dipakai untuk riwayat_perubahan (lihat TODO di bawah).
+        return DB::transaction(function () use ($alternatif, $statusBaru) {
+            Anak::query()->whereKey($alternatif->anak_id)->lockForUpdate()->first();
+            $alternatif->refresh();
+
+            $alasan = $this->alasanTolak($alternatif, $statusBaru);
+            if ($alasan !== null) {
+                throw ValidationException::withMessages(['status' => $alasan]);
+            }
+
+            $statusLama = $alternatif->status;
+            $alternatif->update(['status' => $statusBaru]);
+
+            // TODO PBI-16 (NFR-08): tulis riwayat_perubahan setelah kolom alternatif_id
+            // ditambahkan oleh pemilik migration. Kolom itu belum ada, jadi baris ini belum ditulis:
+            // RiwayatPerubahan::create([
+            //     'dilakukan_oleh' => $guru->id,
+            //     'alternatif_id' => $alternatif->id,
+            //     'aksi' => 'ubah',
+            //     'keterangan' => "{$statusLama} -> {$statusBaru}",
+            //     'waktu' => now(),
+            // ]);
+
+            return $alternatif;
+        });
+    }
+
+    /**
      * Aturan tanpa aspek berlaku untuk semua aspek.
      */
     private function cocok(Observasi $observasi, AturanStrategi $aturan): bool
@@ -167,6 +244,9 @@ class AlternatifStrategiService
     }
 
     /**
+     * Saran dari aturan dengan status apa pun (PBI-16), agar saran yang sudah dipilih
+     * atau diabaikan tidak dibuat ulang.
+     *
      * @param  list<int>  $anakIds
      * @return Collection<string, AlternatifStrategi> kunci "anak_id-aturan_id"
      */
@@ -175,7 +255,6 @@ class AlternatifStrategiService
         return AlternatifStrategi::query()
             ->whereIn('anak_id', $anakIds)
             ->whereNotNull('aturan_id')
-            ->where('status', self::STATUS_DISARANKAN)
             ->with('strategi')
             ->orderBy('id')
             ->get()
@@ -196,7 +275,6 @@ class AlternatifStrategiService
             $sudahAda = AlternatifStrategi::query()
                 ->where('anak_id', $anak->id)
                 ->where('aturan_id', $aturan->id)
-                ->where('status', self::STATUS_DISARANKAN)
                 ->with('strategi')
                 ->first();
 

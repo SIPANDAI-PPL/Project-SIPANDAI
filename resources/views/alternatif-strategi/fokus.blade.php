@@ -18,10 +18,19 @@
         'strategi' => $daftarStrategiAsal->isEmpty() ? '-' : $daftarStrategiAsal->pluck('nama')->implode(', '),
     ];
 
-    // Kartu alternatif: saran dari aturan dulu, lalu alternatif buatan guru.
-    $daftarAlternatif = $daftarSaranAturan->map(fn ($saran) => ['saran' => $saran, 'manual' => false])
-        ->concat($data['manual']->map(fn ($saran) => ['saran' => $saran, 'manual' => true]))
+    // PBI-16: semua alternatif (dari aturan dan buatan guru) dengan semua status.
+    // Urutan: dipilih, disarankan, diabaikan, lalu terbaru dulu.
+    $urutanStatus = ['dipilih' => 0, 'disarankan' => 1, 'diabaikan' => 2];
+    $daftarAlternatif = $daftarSaranAturan->concat($data['manual'])
+        ->unique('id')
+        ->sortBy([
+            fn ($a, $b) => ($urutanStatus[$a->status] ?? 3) <=> ($urutanStatus[$b->status] ?? 3),
+            fn ($a, $b) => $b->dibuat_pada <=> $a->dibuat_pada,
+            fn ($a, $b) => $b->id <=> $a->id,
+        ])
         ->values();
+    $alternatifDipilih = $daftarAlternatif->firstWhere('status', 'dipilih');
+    $adaDisarankan = $daftarAlternatif->contains('status', 'disarankan');
 
     $kelasBadge = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium';
     $kelasLabelKartu = 'text-xs font-semibold uppercase tracking-wide';
@@ -40,6 +49,12 @@
         </p>
     @endif
 
+    @error('status')
+        <p class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert" dusk="pesan-salah-status">
+            Keputusan belum tersimpan. {{ $message }}
+        </p>
+    @enderror
+
     {{-- Identitas anak --}}
     <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -57,6 +72,12 @@
                             Kelas {{ $labelKelas }}
                         </span>
                     </p>
+                    {{-- PBI-16: badge keputusan, diturunkan dari status alternatif. --}}
+                    @if ($alternatifDipilih)
+                        <p class="mt-2"><span class="{{ $kelasBadge }} border-emerald-200 bg-emerald-50 text-emerald-800" dusk="badge-keputusan"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>Ada alternatif yang dipilih</span></p>
+                    @elseif ($adaDisarankan)
+                        <p class="mt-2"><span class="{{ $kelasBadge }} border-amber-200 bg-amber-50 text-amber-800" dusk="badge-keputusan"><span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>Menunggu keputusan guru</span></p>
+                    @endif
                 </div>
             </div>
             <button type="button" data-tambah-alternatif='@json($dataDialog)' dusk="tombol-tambah-alternatif"
@@ -124,37 +145,8 @@
             @endforelse
 
             {{-- Alternatif --}}
-            @forelse ($daftarAlternatif as $alternatif)
-                @php($saran = $alternatif['saran'])
-                <article class="flex flex-col rounded-2xl border border-gray-200 bg-white p-5" dusk="kartu-saran-{{ $saran->id }}">
-                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="{{ $kelasLabelKartu }} text-indigo-800">Alternatif {{ $loop->iteration }}</span>
-                            @if ($alternatif['manual'])
-                                <span class="{{ $kelasBadge }} border-indigo-200 bg-indigo-50 text-indigo-900" dusk="penanda-manual">Ditambahkan guru</span>
-                            @else
-                                <span class="{{ $kelasBadge }} border-blue-200 bg-blue-50 text-blue-800">Dari aturan</span>
-                            @endif
-                        </div>
-                        <span class="{{ $kelasBadge }} border-amber-200 bg-amber-50 text-amber-800">
-                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>Status: {{ ucfirst($saran->status) }}
-                        </span>
-                    </div>
-
-                    <h3 class="mt-4 text-lg font-semibold text-indigo-900">{{ $saran->strategi->nama }}</h3>
-                    @if ($saran->strategi->deskripsi)
-                        <p class="mt-2 text-sm leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
-                    @endif
-
-                    @if ($saran->dasar_saran)
-                        <div class="mt-4 rounded-r-lg border-l-4 border-indigo-200 bg-gray-50 px-3 py-2.5 text-xs leading-relaxed text-gray-700">
-                            <p class="font-semibold uppercase tracking-wide text-gray-800">{{ $alternatif['manual'] ? 'Catatan guru:' : 'Dasar saran:' }}</p>
-                            <p class="mt-1">{{ $saran->dasar_saran }}</p>
-                        </div>
-                    @endif
-
-                    {{-- TODO PBI-16: tombol Pilih / Abaikan / Tinjau Ulang di bagian bawah kartu ini. --}}
-                </article>
+            @forelse ($daftarAlternatif as $saran)
+                @include('alternatif-strategi._kartu-alternatif', ['nomor' => $loop->iteration, 'adaDipilih' => $alternatifDipilih !== null])
             @empty
                 <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-6 lg:col-span-2" dusk="belum-ada-alternatif">
                     <p class="font-semibold">Belum ada alternatif</p>
@@ -174,8 +166,11 @@
             @endforelse
         </div>
 
-        {{-- TODO PBI-16: bilah keputusan (simpan pilihan strategi) di bawah perbandingan. --}}
     </section>
+
+    @if ($daftarAlternatif->isNotEmpty())
+        @include('alternatif-strategi._keputusan')
+    @endif
 
     @include('alternatif-strategi._dialog-tambah')
 </x-layouts.app>

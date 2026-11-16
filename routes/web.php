@@ -67,6 +67,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/anak/{anak}', 'fokus')->name('anak');
             Route::post('/anak/{anak}', 'store')->name('store');
+            // PBI-16 Tinjau, Pilih, atau Abaikan Alternatif Strategi.
+            Route::patch('/{alternatif}/status', 'ubahStatus')->whereNumber('alternatif')->name('status');
         });
 
     // PBI-11 Riwayat Observasi Anak dengan Filter.

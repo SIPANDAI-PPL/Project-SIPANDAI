@@ -161,9 +161,8 @@ class TampilanAlternatifStrategiTest extends TestCase
         $this->assertSame(2, substr_count($html, 'Dasar saran:'));
         $this->assertSame(1, substr_count($html, 'dusk="penanda-manual"'));
         $this->assertSame(1, substr_count($html, 'Catatan guru:'));
-        // Tombol keputusan milik PBI-16.
-        $this->assertDoesNotMatchRegularExpression('/<button[^>]*>\s*(Pilih|Abaikan|Tinjau Ulang)\b/i', $html);
-        $respons->assertDontSee('Abaikan')->assertDontSee('Tinjau Ulang');
+        // Tombol keputusan PBI-16 tampil untuk alternatif berstatus disarankan.
+        $respons->assertSee('Pilih Strategi Ini')->assertSee('Abaikan');
     }
 
     // TC-15-19
