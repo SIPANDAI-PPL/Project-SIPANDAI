@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Guru\TambahAlternatifStrategiRequest;
+use App\Http\Requests\Guru\UbahStatusAlternatifRequest;
 use App\Models\AlternatifStrategi;
 use App\Models\Anak;
 use App\Models\AspekPerkembangan;
@@ -19,6 +20,7 @@ use Illuminate\View\View;
 class AlternatifStrategiController extends Controller
 {
     // Fitur: PBI-15 Penyusunan Alternatif Strategi Berdasarkan Aturan
+    // Fitur: PBI-16 Tinjau, Pilih, atau Abaikan Alternatif Strategi
 
     private const PER_HALAMAN = 10;
 
@@ -59,7 +61,8 @@ class AlternatifStrategiController extends Controller
             ),
             // Ringkasan menghitung anak, bukan pola.
             'jumlahPola' => $daftarAnak->filter(fn (array $item) => $item['pola']->isNotEmpty())->count(),
-            'jumlahSaran' => $daftarAnak->where('punya_saran', true)->count(),
+            // PBI-16: hanya anak yang masih punya alternatif berstatus disarankan.
+            'jumlahSaran' => $daftarAnak->filter(fn (array $item) => $this->punyaDisarankan($item))->count(),
             'jumlahBelumCukup' => $daftarAnak->filter(fn (array $item) => $item['pola']->isNotEmpty() && ! $item['punya_saran'])->count(),
             'pilihanAspek' => AspekPerkembangan::query()->orderBy('id')->get(['id', 'nama']),
             'cari' => $cari,
@@ -95,6 +98,27 @@ class AlternatifStrategiController extends Controller
         return redirect()
             ->route('guru.alternatif-strategi.anak', $anak)
             ->with('status', "Alternatif strategi untuk {$anak->nama} berhasil ditambahkan.");
+    }
+
+    /**
+     * PBI-16: ubah status alternatif (disarankan/diabaikan -> dipilih, disarankan -> diabaikan).
+     */
+    public function ubahStatus(UbahStatusAlternatifRequest $request, AlternatifStrategi $alternatif): RedirectResponse
+    {
+        $alternatif = $this->layanan->ubahStatus($alternatif, $request->validated('status'), $request->user());
+
+        return redirect()
+            ->route('guru.alternatif-strategi.anak', $alternatif->anak_id)
+            ->with('status', "Strategi {$alternatif->strategi->nama} {$alternatif->status}.");
+    }
+
+    /**
+     * @param  array<string, mixed>  $item  satu item dari kelompokkanPerAnak
+     */
+    private function punyaDisarankan(array $item): bool
+    {
+        return $item['pola']->pluck('saran')->filter()->concat($item['manual'])
+            ->contains(fn (AlternatifStrategi $saran) => $saran->status === AlternatifStrategiService::STATUS_DISARANKAN);
     }
 
     /**
