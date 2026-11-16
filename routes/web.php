@@ -10,6 +10,7 @@ use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
 use App\Http\Controllers\Guru\AlternatifStrategiController;
 use App\Http\Controllers\Guru\ObservasiController;
+use App\Http\Controllers\Guru\RingkasanPolaResponsController;
 use App\Http\Controllers\Guru\RiwayatObservasiController;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -72,6 +73,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/guru/anak/{anak}/riwayat-observasi', [RiwayatObservasiController::class, 'index'])
         ->middleware('peran:guru')
         ->name('guru.riwayat-observasi');
+
+    // PBI-12 Ringkasan Pola Respons Anak (guru saja, NFR-04 dicek di controller).
+    Route::middleware('peran:guru')
+        ->name('guru.pola-respons.')
+        ->controller(RingkasanPolaResponsController::class)
+        ->group(function () {
+            Route::get('/guru/pola-respons', 'index')->name('index');
+            Route::get('/guru/anak/{anak}/pola-respons', 'show')->name('anak');
+        });
 
     // PBI-7 Formulir pencatatan observasi (guru saja).
     Route::middleware('peran:guru')

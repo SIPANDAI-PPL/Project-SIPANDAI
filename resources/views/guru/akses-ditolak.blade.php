@@ -34,7 +34,7 @@
             <h1 class="mt-2 text-xl font-semibold text-gray-900 sm:text-2xl">Anda tidak memiliki akses ke data anak ini</h1>
 
             <p class="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-gray-500">
-                Riwayat observasi hanya dapat dilihat oleh guru pengampu kelas anak tersebut.
+                {{ $keterangan ?? 'Riwayat observasi hanya dapat dilihat oleh guru pengampu kelas anak tersebut.' }}
                 Hubungi admin bila Anda merasa ini keliru.
             </p>
 
