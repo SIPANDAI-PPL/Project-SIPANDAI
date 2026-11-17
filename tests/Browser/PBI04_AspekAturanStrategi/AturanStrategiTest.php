@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Browser;
+namespace Tests\Browser\PBI04_AspekAturanStrategi;
 
 use App\Models\AspekPerkembangan;
 use App\Models\StrategiPembelajaran;
