@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Browser;
+namespace Tests\Browser\PBI15_AlternatifStrategi;
 
 use App\Enums\KategoriRespons;
 use App\Models\AlternatifStrategi;
@@ -9,6 +9,7 @@ use App\Models\Anak;
 use App\Models\AspekPerkembangan;
 use App\Models\Kelas;
 use App\Models\StrategiPembelajaran;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
@@ -19,14 +20,17 @@ use Tests\DuskTestCase;
  * observasi, lalu sistem menyusun saran dan guru meninjau atau menambah alternatif strategi.
  *
  * Data awal memakai DatabaseSeeder project (akun miastacia/ayurizki, kelas, anak, data master, aturan),
- * sama dengan data di web lokal. Test berjalan di database testing yang dikosongkan setiap test,
- * jadi database development tidak tersentuh. Observasi dibuat guru lewat formulir.
+ * sama dengan data di web lokal. Test berjalan di database Dusk (DB_DATABASE di .env.dusk.local, contoh
+ * sipandai_dusk). DatabaseTruncation mengosongkan tabel di AWAL setiap test dan tidak menghapus apa pun
+ * di akhir, jadi data test terakhir yang dijalankan tetap tersimpan dan bisa dicek. Observasi dibuat guru
+ * lewat formulir.
  *
  * Jeda antarlangkah untuk demo GUI:
  * docker compose exec -e DUSK_JEDA_MS=1000 laravel.test php artisan dusk --browse --filter=AlternatifStrategiTest
  */
 class AlternatifStrategiTest extends DuskTestCase
 {
+    use DatabaseTruncation;
 
     private const KATA_SANDI = 'password';
 
