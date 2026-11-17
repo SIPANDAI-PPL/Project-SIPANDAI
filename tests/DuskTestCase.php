@@ -6,6 +6,7 @@ use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Illuminate\Support\Collection;
+use Laravel\Dusk\Browser;
 use Laravel\Dusk\TestCase as BaseTestCase;
 use PHPUnit\Framework\Attributes\BeforeClass;
 
@@ -44,5 +45,30 @@ abstract class DuskTestCase extends BaseTestCase
                 ChromeOptions::CAPABILITY, $options
             )
         );
+    }
+
+    /**
+     * Mode visual aktif saat Dusk dijalankan dengan `php artisan dusk --browse`
+     * (Dusk mengisi DUSK_HEADLESS_DISABLED dan mengabaikannya di CI).
+     */
+    protected function modeVisual(): bool
+    {
+        return $this->hasHeadlessDisabled();
+    }
+
+    /**
+     * Jeda agar alur di layar mudah diikuti. Hanya berlaku di mode visual,
+     * sehingga run headless dan CI tetap cepat. Lama jeda bisa diatur lewat
+     * DUSK_JEDA_MS (bawaan 800 ms).
+     */
+    protected function visualPause(Browser $browser, ?int $ms = null): Browser
+    {
+        if (! $this->modeVisual()) {
+            return $browser;
+        }
+
+        $jeda = $ms ?? (int) ($_SERVER['DUSK_JEDA_MS'] ?? $_ENV['DUSK_JEDA_MS'] ?? 800);
+
+        return $browser->pause($jeda);
     }
 }
