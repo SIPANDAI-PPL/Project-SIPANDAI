@@ -27,11 +27,10 @@ class AlternatifStrategiService
 
     /**
      * PBI-16: transisi status yang boleh dilakukan guru, [status lama => daftar status baru].
-     * Alternatif yang sudah dipilih tidak bisa diubah lagi.
+     * Hanya saran disarankan yang bisa diputuskan. Alternatif dipilih/diabaikan tidak bisa diubah lagi.
      */
     private const TRANSISI = [
         self::STATUS_DISARANKAN => [self::STATUS_DIPILIH, self::STATUS_DIABAIKAN],
-        self::STATUS_DIABAIKAN => [self::STATUS_DIPILIH],
     ];
 
     /**
@@ -180,22 +179,17 @@ class AlternatifStrategiService
             return 'Alternatif yang sudah dipilih tidak bisa diubah.';
         }
 
+        if ($alternatif->status === self::STATUS_DIABAIKAN) {
+            return 'Alternatif yang sudah diabaikan tidak bisa diubah.';
+        }
+
         if ($alternatif->status === $statusBaru) {
             return "Alternatif ini sudah berstatus {$statusBaru}.";
         }
 
-        if (! in_array($statusBaru, self::TRANSISI[$alternatif->status] ?? [], true)) {
-            return 'Perubahan status ini tidak diizinkan.';
-        }
-
-        // Hanya satu alternatif dipilih per anak.
-        $sudahAdaDipilih = $statusBaru === self::STATUS_DIPILIH && AlternatifStrategi::query()
-            ->where('anak_id', $alternatif->anak_id)
-            ->where('status', self::STATUS_DIPILIH)
-            ->whereKeyNot($alternatif->id)
-            ->exists();
-
-        return $sudahAdaDipilih ? 'Sudah ada alternatif yang dipilih untuk anak ini.' : null;
+        return in_array($statusBaru, self::TRANSISI[$alternatif->status] ?? [], true)
+            ? null
+            : 'Perubahan status ini tidak diizinkan.';
     }
 
     /**
