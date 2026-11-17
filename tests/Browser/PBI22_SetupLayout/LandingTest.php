@@ -2,19 +2,23 @@
 
 namespace Tests\Browser\PBI22_SetupLayout;
 
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
-// Fitur: PBI-22 Landing page
+// PBI-22 Setup Layout: halaman beranda (landing page)
+// Halaman beranda hanya menampilkan konten statis dan tidak menulis ke database,
+// jadi test di file ini tidak memakai pengecekan database.
 class LandingTest extends DuskTestCase
 {
-    use DatabaseMigrations;
+    // Tanpa DatabaseMigrations: isi database sipandai_dusk tidak dihapus.
 
+    // Positif | Tamu membuka beranda lalu menuju halaman login
     public function test_tamu_membuka_beranda_lalu_ke_halaman_login(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/')
+            // Sesi browser dipakai ulang antar-test, jadi keluar dulu agar tampil sebagai tamu.
+            $browser->logout()
+                ->visit('/')
                 ->waitForText('Ajar lebih tepat besok.')
                 ->assertVisible('img[alt="Maskot SIPANDAI"]')
                 ->click('@tombol-utama')
@@ -23,6 +27,7 @@ class LandingTest extends DuskTestCase
         });
     }
 
+    // Positif | Link anchor menggulir ke bagian Fitur dan header menjadi solid
     public function test_link_anchor_menggulir_ke_bagian_dan_header_menjadi_solid(): void
     {
         $this->browse(function (Browser $browser) {
@@ -44,6 +49,7 @@ class LandingTest extends DuskTestCase
         });
     }
 
+    // Batas | Beranda tidak bisa digulir ke samping di layar selebar 375 px
     public function test_beranda_tanpa_scroll_horizontal_di_layar_kecil(): void
     {
         $this->browse(function (Browser $browser) {
