@@ -25,58 +25,64 @@ trait DataUjiDataMaster
     /**
      * @return array<string, mixed>
      */
-    protected function buatDataUjiDataMaster(): array
+    protected function buatDataUjiDataMaster(string $kode = ''): array
     {
+        // Tanpa kode: nama persis seperti skenario. Dengan kode: "Bercerita k7m2q", "admink7m2q", dst.
+        $akhiran = $kode === '' ? '' : " {$kode}";
+        $akun = fn (string $nama) => $kode === '' ? [] : ['email' => "{$nama}.{$kode}@tkceria.sch.id"];
+
         $admin = User::factory()->admin()->create([
-            'nama' => 'Admin SIPANDAI',
-            'nama_pengguna' => 'admin',
+            'nama' => 'Admin SIPANDAI'.$akhiran,
+            'nama_pengguna' => 'admin'.$kode,
+            ...$akun('admin'),
         ]);
         $guru = User::factory()->create([
-            'nama' => 'Mia Stacia',
-            'nama_pengguna' => 'miastacia',
+            'nama' => 'Mia Stacia'.$akhiran,
+            'nama_pengguna' => 'miastacia'.$kode,
+            ...$akun('mia'),
         ]);
 
         $ak1 = Aktivitas::factory()->create([
-            'nama' => 'Bercerita',
+            'nama' => 'Bercerita'.$akhiran,
             'deskripsi' => 'Kegiatan mendengarkan cerita interaktif atau mendongeng menggunakan buku atau alat peraga.',
         ]);
         $ak2 = Aktivitas::factory()->create([
-            'nama' => 'Menyusun balok',
+            'nama' => 'Menyusun balok'.$akhiran,
             'deskripsi' => 'Aktivitas konstruktif menggunakan balok kayu atau lego untuk mengasah motorik dan spasial.',
         ]);
         $ak3 = Aktivitas::factory()->create([
-            'nama' => 'Permainan gerak',
+            'nama' => 'Permainan gerak'.$akhiran,
             'deskripsi' => 'Aktivitas fisik kinestetik seperti melompat, menari, dan permainan olah tubuh.',
         ]);
         $ak4 = Aktivitas::factory()->nonaktif()->create([
-            'nama' => 'Menggambar & mewarnai',
+            'nama' => 'Menggambar & mewarnai'.$akhiran,
             'deskripsi' => 'Kegiatan ekspresi seni visual menggunakan krayon, pensil warna, atau cat air.',
         ]);
         $ak5 = Aktivitas::factory()->create([
-            'nama' => 'Bermain peran',
+            'nama' => 'Bermain peran'.$akhiran,
             'deskripsi' => 'Aktivitas sosiodrama untuk melatih empati, imajinasi, dan interaksi sosial.',
         ]);
 
         $st1 = StrategiPembelajaran::factory()->create([
-            'nama' => 'Media visual',
+            'nama' => 'Media visual'.$akhiran,
             'deskripsi' => 'Penyampaian materi menggunakan kartu gambar, video ilustratif, poster, dan objek visual konkret.',
         ]);
         $st2 = StrategiPembelajaran::factory()->create([
-            'nama' => 'Kelompok kecil',
+            'nama' => 'Kelompok kecil'.$akhiran,
             'deskripsi' => 'Pendekatan bimbingan interaktif dalam kelompok 3-5 anak untuk mendorong partisipasi aktif.',
         ]);
         $st5 = StrategiPembelajaran::factory()->nonaktif()->create([
-            'nama' => 'Pendampingan individu',
+            'nama' => 'Pendampingan individu'.$akhiran,
             'deskripsi' => 'Bimbingan intensif satu-satu oleh guru untuk anak yang memerlukan perhatian khusus.',
         ]);
         $st6 = StrategiPembelajaran::factory()->create([
-            'nama' => 'Bernyanyi bersama',
+            'nama' => 'Bernyanyi bersama'.$akhiran,
             'deskripsi' => 'Stimulasi bahasa dan musikal melalui nyanyian tematik berima.',
         ]);
 
         $kelas = Kelas::factory()->create(['guru_id' => $guru->id]);
         $anak = Anak::factory()->create(['kelas_id' => $kelas->id]);
-        $aspek = AspekPerkembangan::factory()->create();
+        $aspek = AspekPerkembangan::factory()->create($kode === '' ? [] : ['nama' => 'Kognitif'.$akhiran]);
 
         $observasi = fn (Aktivitas $aktivitas, StrategiPembelajaran $strategi) => Observasi::factory()->create([
             'anak_id' => $anak->id,
