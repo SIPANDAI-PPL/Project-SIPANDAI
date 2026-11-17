@@ -8,6 +8,7 @@ use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
+use Laravel\Dusk\Browser;
 use Laravel\Dusk\TestCase as BaseTestCase;
 use PHPUnit\Framework\Attributes\BeforeClass;
 use Tests\Browser\Support\BrowserBerjeda;
@@ -84,5 +85,15 @@ abstract class DuskTestCase extends BaseTestCase
     protected function jalankanTanpaTampilan(): bool
     {
         return filter_var(env('DUSK_HEADLESS', false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Dipertahankan sementara agar test PBI-3 yang memanggilnya tetap berjalan.
+     * Jeda kini diatur oleh DUSK_SLOW_MS lewat BrowserBerjeda, jadi method ini
+     * tidak menambah jeda lagi. Hapus setelah test PBI-3 disesuaikan dengan panduan.
+     */
+    protected function visualPause(Browser $browser, ?int $ms = null): Browser
+    {
+        return $browser;
     }
 }
