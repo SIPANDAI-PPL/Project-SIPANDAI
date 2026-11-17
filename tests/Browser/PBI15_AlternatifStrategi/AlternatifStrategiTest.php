@@ -9,7 +9,6 @@ use App\Models\Anak;
 use App\Models\AspekPerkembangan;
 use App\Models\Kelas;
 use App\Models\StrategiPembelajaran;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
@@ -28,7 +27,6 @@ use Tests\DuskTestCase;
  */
 class AlternatifStrategiTest extends DuskTestCase
 {
-    use DatabaseMigrations;
 
     private const KATA_SANDI = 'password';
 
