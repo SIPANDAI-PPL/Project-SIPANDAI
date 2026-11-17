@@ -1,4 +1,3 @@
-
 services:
     laravel.test:
         build:
@@ -26,7 +25,6 @@ services:
         depends_on:
             - mysql
             - selenium
-
     mysql:
         image: 'mysql:8.4'
         ports:
@@ -53,19 +51,6 @@ services:
                 - '-p${DB_PASSWORD}'
             retries: 3
             timeout: 5s
-
-    phpmyadmin:
-        image: 'phpmyadmin:latest'
-        ports:
-            - '8081:80'
-        environment:
-            PMA_HOST: mysql
-            PMA_PORT: 3306
-        depends_on:
-            - mysql
-        networks:
-            - sail
-
     selenium:
         image: selenium/standalone-chromium
         extra_hosts:
@@ -79,11 +64,9 @@ services:
             - '/dev/shm:/dev/shm'
         networks:
             - sail
-
 networks:
     sail:
         driver: bridge
-
 volumes:
     sail-mysql:
         driver: local
