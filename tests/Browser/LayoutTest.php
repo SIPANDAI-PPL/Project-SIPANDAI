@@ -58,7 +58,8 @@ class LayoutTest extends DuskTestCase
     public function test_tombol_lihat_kata_sandi_di_halaman_login(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/login')
+            $browser->logout()
+                ->visit('/login')
                 ->assertSee('Masuk ke SIPANDAI')
                 ->assertAttribute('#kata_sandi', 'type', 'password')
                 ->click('[data-lihat-sandi="kata_sandi"]')
