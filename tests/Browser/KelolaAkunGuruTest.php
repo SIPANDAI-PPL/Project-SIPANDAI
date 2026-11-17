@@ -86,7 +86,7 @@ class KelolaAkunGuruTest extends DuskTestCase
             $this->assertTrue(Hash::check($sandi, $rina->getAuthPassword()));
 
             $browser->click('@selesai-sandi')
-                ->assertMissing('@modal-sandi-sementara')
+                ->waitUntilMissing('@modal-sandi-sementara')
                 ->assertSee('Rina Kartika')
                 ->assertSee('Semua (5)');
         });
@@ -151,7 +151,7 @@ class KelolaAkunGuruTest extends DuskTestCase
             $browser->refresh()
                 ->assertPathIs('/admin/guru')
                 ->assertSee('Ayu Rizki')
-                ->assertMissing('@modal-sandi-sementara')
+                ->waitUntilMissing('@modal-sandi-sementara')
                 ->assertDontSee($sandi)
                 ->assertSourceMissing($sandi);
         });
