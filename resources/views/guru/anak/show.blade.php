@@ -3,7 +3,7 @@
         <a href="{{ route('guru.anak.index', ['kelas' => $anak['kelas_id']]) }}" class="text-sm text-indigo-900 underline">← Kembali ke Data Anak</a>
 
         @if (session('status'))
-            <p class="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">{{ session('status') }}</p>
+            <p class="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" dusk="pesan-status">{{ session('status') }}</p>
         @endif
 
         <section class="mt-3 rounded-lg bg-white p-6 shadow">
