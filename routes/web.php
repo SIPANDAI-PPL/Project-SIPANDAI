@@ -9,6 +9,7 @@ use App\Http\Controllers\DataMaster\AktivitasController;
 use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
 use App\Http\Controllers\Guru\AlternatifStrategiController;
+use App\Http\Controllers\Guru\KelolaDataAnakController;
 use App\Http\Controllers\Guru\ObservasiController;
 use App\Http\Controllers\Guru\RingkasanPolaResponsController;
 use App\Http\Controllers\Guru\RiwayatObservasiController;
@@ -57,6 +58,16 @@ Route::middleware('auth')->group(function () {
     Route::view('/guru/dashboard', 'guru.dashboard')
         ->middleware('peran:guru')
         ->name('guru.dashboard');
+
+    // PBI-5 Kelola Data Dasar Anak.
+    Route::middleware('peran:guru')->prefix('guru/anak')->name('guru.anak.')->group(function () {
+        Route::get('/', [KelolaDataAnakController::class, 'index'])->name('index');
+        Route::post('/', [KelolaDataAnakController::class, 'store'])->name('store');
+        Route::get('/{anak}', [KelolaDataAnakController::class, 'show'])->whereNumber('anak')->name('show');
+        Route::put('/{anak}', [KelolaDataAnakController::class, 'update'])->whereNumber('anak')->name('update');
+        Route::patch('/{anak}/nonaktifkan', [KelolaDataAnakController::class, 'nonaktifkan'])->whereNumber('anak')->name('nonaktifkan');
+        Route::patch('/{anak}/aktifkan', [KelolaDataAnakController::class, 'aktifkan'])->whereNumber('anak')->name('aktifkan');
+    });
 
     // PBI-15 Penyusunan Alternatif Strategi Berdasarkan Aturan.
     Route::middleware('peran:guru')
