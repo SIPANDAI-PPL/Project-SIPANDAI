@@ -40,7 +40,7 @@
     ];
 @endphp
 
-<x-layouts.app title="Data Observasi">
+<x-layouts.app title="Tambah Observasi">
     <style>
         .obs {
             --brand: #2E2580;
