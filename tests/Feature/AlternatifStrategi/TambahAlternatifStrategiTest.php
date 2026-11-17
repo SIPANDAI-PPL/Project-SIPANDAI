@@ -109,9 +109,10 @@ class TambahAlternatifStrategiTest extends TestCase
     // TC-15-21
     public function test_tc_15_21_catatan_kosong_disimpan_null(): void
     {
-        foreach (['', '   '] as $catatan) {
+        // Strategi dibedakan per percobaan: strategi yang masih disarankan tidak boleh ditambah lagi.
+        foreach ([['S3', ''], ['S4', '   ']] as [$kode, $catatan]) {
             $this->actingAs($this->guruA)
-                ->post($this->urlTambah($this->anak1), ['strategi_id' => $this->s['S3']->id, 'catatan' => $catatan])
+                ->post($this->urlTambah($this->anak1), ['strategi_id' => $this->s[$kode]->id, 'catatan' => $catatan])
                 ->assertSessionHasNoErrors();
         }
 

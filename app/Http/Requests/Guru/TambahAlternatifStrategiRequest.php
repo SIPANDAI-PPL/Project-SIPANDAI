@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Guru;
 
 use App\Models\Anak;
+use App\Services\AlternatifStrategiService;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,7 +37,18 @@ class TambahAlternatifStrategiRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'strategi_id' => ['required', 'integer', Rule::exists('strategi_pembelajaran', 'id')->where('aktif', true)],
+            'strategi_id' => [
+                'bail',
+                'required',
+                'integer',
+                Rule::exists('strategi_pembelajaran', 'id')->where('aktif', true),
+                // Tolak strategi yang masih berstatus disarankan untuk anak ini (dicek ulang di tambahManual).
+                function (string $atribut, mixed $nilai, Closure $gagal) {
+                    if (app(AlternatifStrategiService::class)->strategiMasihDisarankan($this->route('anak'), (int) $nilai)) {
+                        $gagal(AlternatifStrategiService::PESAN_STRATEGI_GANDA);
+                    }
+                },
+            ],
             'catatan' => ['nullable', 'string', 'max:1000'],
         ];
     }
