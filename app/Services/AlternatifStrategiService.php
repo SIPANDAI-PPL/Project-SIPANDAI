@@ -8,6 +8,7 @@ use App\Models\AturanStrategi;
 use App\Models\Kelas;
 use App\Models\Observasi;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -34,17 +35,46 @@ class AlternatifStrategiService
         self::STATUS_DIABAIKAN => [self::STATUS_DIPILIH],
     ];
 
+    public const PESAN_STRATEGI_GANDA = 'Strategi ini sudah ada di daftar saran anak.';
+
     /**
      * Susun saran untuk semua anak aktif di kelas, lalu kembalikan daftar pola respons.
      *
      * Satu pola = satu anak + satu aturan aktif dengan minimal satu observasi yang cocok.
-     * Saran baru hanya dibuat jika jumlah observasi cocok >= minimal_kejadian.
+     * Saran baru hanya dibuat jika jumlah observasi cocok >= minimal_kejadian (lihat susun()).
      *
      * @return Collection<int, array{anak: Anak, aturan: AturanStrategi, jumlah: int, tanggal: Collection, saran: ?AlternatifStrategi}>
      */
     public function susunUntukKelas(Kelas $kelas): Collection
     {
-        $daftarAnak = $kelas->anak()->where('aktif', true)->orderBy('nama')->get();
+        return $this->susun($kelas->anak()->where('aktif', true)->orderBy('nama')->get());
+    }
+
+    /**
+     * Susun saran untuk satu anak. Logika sama dengan susunUntukKelas.
+     * Disiapkan untuk dipanggil setelah observasi anak disimpan (PBI-07/PBI-08).
+     *
+     * @return Collection<int, array{anak: Anak, aturan: AturanStrategi, jumlah: int, tanggal: Collection, saran: ?AlternatifStrategi}>
+     */
+    public function susunUntukAnak(Anak $anak): Collection
+    {
+        return $anak->aktif ? $this->susun(new EloquentCollection([$anak])) : collect();
+    }
+
+    /**
+     * Inti penyusunan saran untuk sekumpulan anak aktif.
+     *
+     * Per anak + aturan, dilihat saran terakhir (status apa pun):
+     * - belum ada saran: semua observasi cocok dihitung;
+     * - saran terakhir masih disarankan: tidak dibuat saran baru;
+     * - saran terakhir sudah dipilih/diabaikan: hanya observasi cocok yang dicatat setelah saran itu dibuat.
+     * Jadi satu aturan dapat mendasari banyak saran untuk anak yang sama.
+     *
+     * @param  EloquentCollection<int, Anak>  $daftarAnak
+     * @return Collection<int, array{anak: Anak, aturan: AturanStrategi, jumlah: int, tanggal: Collection, saran: ?AlternatifStrategi}>
+     */
+    private function susun(EloquentCollection $daftarAnak): Collection
+    {
         $daftarAturan = AturanStrategi::query()
             ->aktif()
             ->with(['aspek', 'strategiAsal', 'strategiAlternatif'])
@@ -60,10 +90,10 @@ class AlternatifStrategiService
             ->whereIn('strategi_id', $daftarAturan->pluck('strategi_asal_id')->unique())
             ->orderBy('tanggal')
             ->orderBy('id')
-            ->get(['id', 'anak_id', 'strategi_id', 'aspek_id', 'kategori_respons', 'tanggal'])
+            ->get(['id', 'anak_id', 'strategi_id', 'aspek_id', 'kategori_respons', 'tanggal', 'dibuat_pada'])
             ->groupBy('anak_id');
 
-        $saranTerbuka = $this->saranTerbuka($daftarAnak->modelKeys());
+        $saranTerakhir = $this->saranTerakhir($daftarAnak->modelKeys());
 
         $daftarPola = collect();
 
@@ -77,11 +107,15 @@ class AlternatifStrategiService
                     continue;
                 }
 
-                $saran = $saranTerbuka->get("{$anak->id}-{$aturan->id}");
+                $saran = $saranTerakhir->get("{$anak->id}-{$aturan->id}");
 
-                // Strategi alternatif yang sudah dinonaktifkan admin tidak disarankan.
-                if ($saran === null && $cocok->count() >= $aturan->minimal_kejadian && $aturan->strategiAlternatif->aktif) {
-                    $saran = $this->simpanSaran($anak, $aturan, $cocok);
+                if ($saran?->status !== self::STATUS_DISARANKAN) {
+                    $dihitung = $saran === null ? $cocok : $cocok->filter(fn (Observasi $observasi) => $this->dicatatSetelah($observasi, $saran))->values();
+
+                    // Strategi alternatif yang sudah dinonaktifkan admin tidak disarankan.
+                    if ($dihitung->count() >= $aturan->minimal_kejadian && $aturan->strategiAlternatif->aktif) {
+                        $saran = $this->simpanSaran($anak, $aturan, $dihitung, $saran);
+                    }
                 }
 
                 $daftarPola->push([
@@ -143,31 +177,65 @@ class AlternatifStrategiService
     }
 
     /**
-     * Data satu anak untuk Mode Fokus. Saran tetap disusun lewat susunUntukKelas agar sama dengan halaman daftar.
+     * Data satu anak untuk Mode Fokus. Saran disusun lewat susunUntukAnak (logika sama dengan halaman daftar).
+     * saran_aturan berisi SEMUA saran dari aturan untuk anak ini, termasuk saran lama yang sudah
+     * dipilih/diabaikan, karena pola hanya menyimpan saran terakhir per aturan.
      *
-     * @return array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool}
+     * @return array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool, saran_aturan: Collection}
      */
     public function dataAnak(Anak $anak): array
     {
-        $kelas = $anak->kelas;
-
         $item = $this->kelompokkanPerAnak(
-            $this->susunUntukKelas($kelas)->filter(fn (array $pola) => $pola['anak']->is($anak)),
-            $this->saranManual($kelas)->where('anak_id', $anak->id),
-        )->first();
+            $this->susunUntukAnak($anak),
+            $this->saranManual($anak->kelas)->where('anak_id', $anak->id),
+        )->first() ?? ['anak' => $anak, 'pola' => collect(), 'manual' => collect(), 'punya_saran' => false];
 
-        return $item ?? ['anak' => $anak, 'pola' => collect(), 'manual' => collect(), 'punya_saran' => false];
+        return $item + [
+            'saran_aturan' => AlternatifStrategi::query()
+                ->where('anak_id', $anak->id)
+                ->whereNotNull('aturan_id')
+                ->with('strategi')
+                ->orderBy('id')
+                ->get(),
+        ];
     }
 
+    /**
+     * Anak sudah punya saran berstatus disarankan dengan strategi yang sama (dari aturan maupun buatan guru).
+     * Strategi yang pernah dipilih/diabaikan boleh ditambahkan lagi.
+     */
+    public function strategiMasihDisarankan(Anak $anak, int $strategiId): bool
+    {
+        return AlternatifStrategi::query()
+            ->where('anak_id', $anak->id)
+            ->where('strategi_id', $strategiId)
+            ->where('status', self::STATUS_DISARANKAN)
+            ->exists();
+    }
+
+    /**
+     * Dicek ulang di dalam transaksi dengan baris anak dikunci agar dua permintaan bersamaan
+     * tidak menghasilkan saran ganda.
+     *
+     * @throws ValidationException jika strategi masih disarankan untuk anak ini.
+     */
     public function tambahManual(Anak $anak, int $strategiId, ?string $catatan): AlternatifStrategi
     {
-        return AlternatifStrategi::create([
-            'anak_id' => $anak->id,
-            'strategi_id' => $strategiId,
-            'aturan_id' => null,
-            'dasar_saran' => $catatan,
-            'status' => self::STATUS_DISARANKAN,
-        ]);
+        return DB::transaction(function () use ($anak, $strategiId, $catatan) {
+            Anak::query()->whereKey($anak->id)->lockForUpdate()->first();
+
+            if ($this->strategiMasihDisarankan($anak, $strategiId)) {
+                throw ValidationException::withMessages(['strategi_id' => self::PESAN_STRATEGI_GANDA]);
+            }
+
+            return AlternatifStrategi::create([
+                'anak_id' => $anak->id,
+                'strategi_id' => $strategiId,
+                'aturan_id' => null,
+                'dasar_saran' => $catatan,
+                'status' => self::STATUS_DISARANKAN,
+            ]);
+        });
     }
 
     /**
@@ -244,13 +312,27 @@ class AlternatifStrategiService
     }
 
     /**
-     * Saran dari aturan dengan status apa pun (PBI-16), agar saran yang sudah dipilih
-     * atau diabaikan tidak dibuat ulang.
+     * Observasi dicatat setelah saran dibuat. Pakai observasi.dibuat_pada (waktu pencatatan);
+     * jika kosong, pakai tanggal observasi yang lebih besar dari tanggal saran dibuat.
+     */
+    private function dicatatSetelah(Observasi $observasi, AlternatifStrategi $saran): bool
+    {
+        if ($saran->dibuat_pada === null) {
+            return true;
+        }
+
+        return $observasi->dibuat_pada !== null
+            ? $observasi->dibuat_pada->gt($saran->dibuat_pada)
+            : $observasi->tanggal->gt($saran->dibuat_pada->copy()->startOfDay());
+    }
+
+    /**
+     * Saran terakhir dari aturan per anak + aturan, status apa pun.
      *
      * @param  list<int>  $anakIds
      * @return Collection<string, AlternatifStrategi> kunci "anak_id-aturan_id"
      */
-    private function saranTerbuka(array $anakIds): Collection
+    private function saranTerakhir(array $anakIds): Collection
     {
         return AlternatifStrategi::query()
             ->whereIn('anak_id', $anakIds)
@@ -265,21 +347,24 @@ class AlternatifStrategiService
      * Simpan saran baru. Dicek ulang di dalam transaksi agar tidak ada saran ganda
      * untuk anak dan aturan yang sama jika halaman dibuka bersamaan.
      *
-     * @param  Collection<int, Observasi>  $cocok
+     * @param  Collection<int, Observasi>  $cocok  observasi yang dihitung untuk saran ini saja
+     * @param  ?AlternatifStrategi  $saranSebelumnya  saran terakhir yang dipakai saat menghitung $cocok
      */
-    private function simpanSaran(Anak $anak, AturanStrategi $aturan, Collection $cocok): AlternatifStrategi
+    private function simpanSaran(Anak $anak, AturanStrategi $aturan, Collection $cocok, ?AlternatifStrategi $saranSebelumnya): AlternatifStrategi
     {
-        return DB::transaction(function () use ($anak, $aturan, $cocok) {
+        return DB::transaction(function () use ($anak, $aturan, $cocok, $saranSebelumnya) {
             Anak::query()->whereKey($anak->id)->lockForUpdate()->first();
 
-            $sudahAda = AlternatifStrategi::query()
+            $terakhir = AlternatifStrategi::query()
                 ->where('anak_id', $anak->id)
                 ->where('aturan_id', $aturan->id)
                 ->with('strategi')
+                ->orderByDesc('id')
                 ->first();
 
-            if ($sudahAda !== null) {
-                return $sudahAda;
+            // Sudah ada saran terbuka, atau ada saran yang lebih baru dari yang dipakai saat menghitung.
+            if ($terakhir !== null && ($terakhir->status === self::STATUS_DISARANKAN || $terakhir->id !== $saranSebelumnya?->id)) {
+                return $terakhir;
             }
 
             $saran = AlternatifStrategi::create([
