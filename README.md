@@ -65,11 +65,26 @@ Atur Git sekali saja. Pakai email yang sama dengan akun Jira, supaya commit tert
 
 7. Buka http://localhost. Halaman Laravel harus muncul.
 
-8. Siapkan Dusk: salin `.env` menjadi `.env.dusk.local`, lalu ubah tiga baris ini:
+8. Siapkan Dusk: salin `.env` menjadi `.env.dusk.local`, lalu ubah atau tambahkan baris ini:
 
        APP_URL=http://laravel.test
-       DB_DATABASE=testing
+       DB_DATABASE=sipandai_dusk
        DUSK_DRIVER_URL=http://selenium:4444/wd/hub
+       DUSK_SLOW_MS=500
+
+9. Buat database khusus Dusk. Cukup sekali per laptop:
+
+       sail exec mysql bash -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS sipandai_dusk; GRANT ALL PRIVILEGES ON sipandai_dusk.* TO \"$MYSQL_USER\"@\"%\";"'
+
+## Test Dusk
+
+- Test Dusk tampil dengan GUI. Buka http://localhost:7900, klik **Connect**, lalu jalankan test untuk menonton browser bekerja.
+- `DUSK_SLOW_MS` mengatur jeda (milidetik) sebelum setiap klik dan ketik. Isi `0` untuk kecepatan normal. Tambahkan `DUSK_HEADLESS=true` jika ingin tanpa tampilan.
+- Test Dusk memakai database `sipandai_dusk` yang tidak pernah dikosongkan. Data hasil test bisa dicek dengan `sail mysql`, lalu `USE sipandai_dusk;`.
+- Test Dusk tidak boleh memakai `DatabaseMigrations`, `RefreshDatabase`, atau seeder. Prasyarat dibuat dengan factory, data yang diuji diisi lewat form, dan nilai unik memakai `kodeUnik()` dari `Tests\Browser\Concerns\DataUnik`.
+- File test dikelompokkan per PBI: `tests/Browser/PBI01_KelolaAkunGuru/`, `tests/Browser/PBI05_KelolaDataAnak/`, dan seterusnya. Nama fungsi memakai Case ID, misalnya `test_tc_01_04_menambah_akun_guru_valid`.
+- Jalankan satu PBI: `sail php artisan dusk tests/Browser/PBI01_KelolaAkunGuru`. Jalankan satu test case: `sail php artisan dusk --filter=test_tc_01_04`.
+- Setelah pull, jalankan `sail npm run build` sebelum Dusk agar CSS terbaru ikut dipakai.
 
 ## Perintah sehari-hari
 
@@ -110,7 +125,7 @@ Atur Git sekali saja. Pakai email yang sama dengan akun Jira, supaya commit tert
 - Jangan commit `.env` dan `.env.dusk.local`.
 - Pakai **data dummy** dari seeder atau factory. Jangan pernah memasukkan data anak asli ke repo, seeder, atau prompt AI.
 - Setiap fitur wajib punya test sesuai test case di deskripsi PBI.
-- Lokasi file test: `tests/Feature/...` untuk PHPUnit dan `tests/Browser/...` untuk Dusk.
+- Lokasi file test: `tests/Feature/...` untuk PHPUnit dan `tests/Browser/PBIxx_NamaFitur/...` untuk Dusk.
 
 ## Masalah umum
 
