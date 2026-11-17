@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Browser;
+namespace Tests\Browser\PBI02_AktivitasStrategi;
 
 use App\Models\Observasi;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
