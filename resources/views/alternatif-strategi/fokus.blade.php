@@ -2,7 +2,8 @@
 @php
     $anak = $data['anak'];
     $daftarPola = $data['pola'];
-    $daftarSaranAturan = $daftarPola->pluck('saran')->filter();
+    // Semua saran dari aturan, termasuk saran lama dari aturan yang sama.
+    $daftarSaranAturan = $data['saran_aturan'];
     $daftarStrategiAsal = $daftarPola->pluck('aturan.strategiAsal')->unique('id');
     $observasiTerakhir = $daftarPola->map(fn (array $pola) => $pola['tanggal']->last())->max();
 
