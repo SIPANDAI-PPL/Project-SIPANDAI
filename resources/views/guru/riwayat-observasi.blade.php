@@ -51,7 +51,11 @@
             <div class="min-w-0">
                 <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Riwayat Observasi</h1>
                 <p class="mt-1 text-sm text-gray-500">
-                    <span class="font-medium text-gray-700">{{ $anak['nama_panggilan'] }}</span>
+                    {{-- Nama lengkap seperti di halaman Observasi, panggilan di dalam kurung. --}}
+                    <span class="font-medium text-gray-700">{{ $anak['nama'] }}</span>
+                    @if ($anak['nama_panggilan'] && $anak['nama_panggilan'] !== $anak['nama'])
+                        <span>({{ $anak['nama_panggilan'] }})</span>
+                    @endif
                     <span class="mx-1.5 text-gray-300">•</span>
                     <span>{{ $anak['kelas'] }}</span>
                 </p>
@@ -201,8 +205,10 @@
                                     @if (($observasi['jumlah_perubahan'] ?? 0) > 0)
                                         <p class="mt-3 text-xs text-gray-400">
                                             Diubah {{ $observasi['jumlah_perubahan'] }}x
-                                            <span class="mx-1">•</span>
-                                            <a href="#" class="underline decoration-dotted underline-offset-2 hover:text-gray-600">lihat perubahan</a>
+                                            @if ($observasi['bisa_lihat_perubahan'] ?? false)
+                                                <span class="mx-1">•</span>
+                                                <a href="{{ route('guru.observasi.riwayat', $observasi['id']) }}" class="underline decoration-dotted underline-offset-2 hover:text-gray-600">lihat perubahan</a>
+                                            @endif
                                         </p>
                                     @endif
                                 </article>
@@ -217,7 +223,8 @@
                 <p id="penghitung-bawah" class="text-sm text-gray-500" aria-live="polite">
                     Menampilkan {{ $batasAwalTampil }} dari {{ $totalObservasi }} {{ $filterAktif ? 'hasil' : 'catatan' }}
                 </p>
-                <button type="button" id="muat-lebih-banyak" class="inline-flex items-center gap-2 rounded-lg border border-[#221177]/20 bg-white px-4 py-2 text-sm font-semibold text-[#221177] shadow-sm transition hover:bg-[#F6F5FA] focus:outline-none focus:ring-2 focus:ring-[#221177]/20 {{ ($filterAktif || $totalObservasi <= $jumlahAwalTampil) ? 'hidden' : '' }}">
+                {{-- hidden dan inline-flex dipasang bergantian: jika keduanya ada, inline-flex menang dan tombol tidak pernah tersembunyi. --}}
+                <button type="button" id="muat-lebih-banyak" class="items-center gap-2 rounded-lg border border-[#221177]/20 bg-white px-4 py-2 text-sm font-semibold text-[#221177] shadow-sm transition hover:bg-[#F6F5FA] focus:outline-none focus:ring-2 focus:ring-[#221177]/20 {{ ($filterAktif || $totalObservasi <= $jumlahAwalTampil) ? 'hidden' : 'inline-flex' }}">
                     Muat lebih banyak
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" /></svg>
                 </button>
@@ -250,7 +257,9 @@
                     });
 
                     penghitung.textContent = `Menampilkan ${Math.min(jumlahTampil, total)} dari ${total} ${satuan}`;
-                    tombol.classList.toggle('hidden', jumlahTampil >= total);
+                    const semuaTampil = jumlahTampil >= total;
+                    tombol.classList.toggle('hidden', semuaTampil);
+                    tombol.classList.toggle('inline-flex', ! semuaTampil);
                 };
 
                 tombol.addEventListener('click', () => {
