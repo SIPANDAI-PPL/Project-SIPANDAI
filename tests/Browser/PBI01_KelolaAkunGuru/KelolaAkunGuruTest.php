@@ -191,7 +191,7 @@ class KelolaAkunGuruTest extends DuskTestCase
             $this->assertNotSame('', $sandi);
 
             // Expected Result - Tampilan dan sumber halaman tidak lagi memuat kata sandi.
-            $browser->refresh()
+            $browser->visit('/admin/guru?q='.$kode)
                 ->assertPathIs('/admin/guru')
                 ->assertSee("Ayu Rizki {$kode}")
                 ->waitUntilMissing('@modal-sandi-sementara')
