@@ -1,9 +1,10 @@
 {{--
     PBI-16 Bilah keputusan (sticky di bawah konten) dan dialog konfirmasi Abaikan di Mode Fokus.
-    Butuh: $alternatifDipilih (?AlternatifStrategi yang sudah dipilih).
+    Butuh: $daftarAlternatif (semua alternatif anak); yang berstatus dipilih disebut di bilah.
     Pemicu dari _kartu-alternatif: [data-tandai] menandai kartu, [data-abaikan] membuka dialog.
 --}}
 @php
+    $namaDipilih = $daftarAlternatif->where('status', 'dipilih')->map(fn ($saran) => $saran->strategi->nama)->implode(', ');
     $kelasTombolUtama = 'inline-flex min-h-11 items-center justify-center rounded-lg bg-indigo-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-50';
     $kelasTombolSekunder = 'inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm hover:bg-gray-50';
 @endphp
@@ -15,11 +16,10 @@
 
     <div class="min-w-0" aria-live="polite">
         <p class="font-semibold">Keputusan guru</p>
-        @if ($alternatifDipilih)
-            <p class="mt-0.5 text-sm text-gray-600">Alternatif {{ $alternatifDipilih->strategi->nama }} dipilih. Keputusan sudah tersimpan.</p>
-        @else
-            <p class="mt-0.5 text-sm text-gray-600" data-teks-keputusan>Belum ada alternatif yang ditandai. Tekan "Pilih Strategi Ini" pada salah satu kartu.</p>
+        @if ($namaDipilih !== '')
+            <p class="mt-0.5 text-sm text-gray-600">Sudah dipilih dan tersimpan: {{ $namaDipilih }}.</p>
         @endif
+        <p class="mt-0.5 text-sm text-gray-600" data-teks-keputusan>Belum ada alternatif yang ditandai. Tekan "Pilih Strategi Ini" pada salah satu kartu.</p>
     </div>
     <button type="submit" disabled data-simpan-keputusan dusk="simpan-keputusan" class="{{ $kelasTombolUtama }} w-full shrink-0 sm:w-auto">
         &#10003; Simpan Keputusan
@@ -44,7 +44,7 @@
                 <button type="button" data-tutup class="text-xl leading-none text-gray-500 hover:text-gray-800" aria-label="Tutup">&times;</button>
             </div>
             <p class="mt-4 text-xs leading-relaxed text-gray-500">
-                Alternatif tetap tersimpan dan tampil. Guru dapat meninjau ulang dan memilihnya nanti.
+                Alternatif tetap tersimpan dan tampil, tetapi keputusan ini tidak bisa diubah lagi.
             </p>
         </div>
 
@@ -72,7 +72,9 @@
                 const tombol = lain.querySelector('[data-tandai]');
                 if (!tombol) return;
                 tombol.setAttribute('aria-pressed', aktif ? 'true' : 'false');
-                lain.querySelector('[data-penanda-ditandai]').classList.toggle('hidden', !aktif);
+                const penanda = lain.querySelector('[data-penanda-ditandai]');
+                penanda.classList.toggle('hidden', !aktif);
+                penanda.classList.toggle('inline-flex', aktif);
                 lain.classList.remove(...(aktif ? KELAS_BIASA : KELAS_TANDAI));
                 lain.classList.add(...(aktif ? KELAS_TANDAI : KELAS_BIASA));
             });

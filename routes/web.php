@@ -9,9 +9,11 @@ use App\Http\Controllers\DataMaster\AktivitasController;
 use App\Http\Controllers\DataMaster\AspekPerkembanganController;
 use App\Http\Controllers\DataMaster\StrategiPembelajaranController;
 use App\Http\Controllers\Guru\AlternatifStrategiController;
+use App\Http\Controllers\Guru\KelolaDataAnakController;
 use App\Http\Controllers\Guru\ObservasiController;
 use App\Http\Controllers\Guru\RingkasanPolaResponsController;
 use App\Http\Controllers\Guru\RiwayatObservasiController;
+use App\Http\Controllers\Guru\TindakLanjutController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -58,6 +60,16 @@ Route::middleware('auth')->group(function () {
         ->middleware('peran:guru')
         ->name('guru.dashboard');
 
+    // PBI-5 Kelola Data Dasar Anak.
+    Route::middleware('peran:guru')->prefix('guru/anak')->name('guru.anak.')->group(function () {
+        Route::get('/', [KelolaDataAnakController::class, 'index'])->name('index');
+        Route::post('/', [KelolaDataAnakController::class, 'store'])->name('store');
+        Route::get('/{anak}', [KelolaDataAnakController::class, 'show'])->whereNumber('anak')->name('show');
+        Route::put('/{anak}', [KelolaDataAnakController::class, 'update'])->whereNumber('anak')->name('update');
+        Route::patch('/{anak}/nonaktifkan', [KelolaDataAnakController::class, 'nonaktifkan'])->whereNumber('anak')->name('nonaktifkan');
+        Route::patch('/{anak}/aktifkan', [KelolaDataAnakController::class, 'aktifkan'])->whereNumber('anak')->name('aktifkan');
+    });
+
     // PBI-15 Penyusunan Alternatif Strategi Berdasarkan Aturan.
     Route::middleware('peran:guru')
         ->prefix('guru/alternatif-strategi')
@@ -69,6 +81,19 @@ Route::middleware('auth')->group(function () {
             Route::post('/anak/{anak}', 'store')->name('store');
             // PBI-16 Tinjau, Pilih, atau Abaikan Alternatif Strategi.
             Route::patch('/{alternatif}/status', 'ubahStatus')->whereNumber('alternatif')->name('status');
+        });
+
+    // PBI-17 Pencatatan Tindak Lanjut (guru saja, NFR-04 dicek lewat AnakPolicy).
+    Route::middleware('peran:guru')
+        ->prefix('guru/tindak-lanjut')
+        ->name('guru.tindak-lanjut.')
+        ->controller(TindakLanjutController::class)
+        ->group(function () {
+            Route::get('/', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/riwayat', 'riwayat')->name('riwayat');
+            Route::get('/{tindakLanjut}/ubah', 'edit')->whereNumber('tindakLanjut')->name('edit');
+            Route::put('/{tindakLanjut}', 'update')->whereNumber('tindakLanjut')->name('update');
         });
 
     // PBI-11 Riwayat Observasi Anak dengan Filter.

@@ -1,13 +1,13 @@
 {{--
     PBI-16 Satu kartu alternatif strategi di Mode Fokus.
-    Butuh: $saran (AlternatifStrategi dengan relasi strategi), $nomor (urutan kartu),
-    $adaDipilih (bool, anak sudah punya alternatif dipilih).
-    Tombol "Pilih Strategi Ini" dan "Tinjau Ulang dan Pilih" hanya menandai kartu di browser;
-    penyimpanan lewat bilah keputusan (_keputusan.blade.php).
+    Butuh: $saran (AlternatifStrategi dengan relasi strategi), $nomor (urutan kartu).
+    Tombol "Pilih Strategi Ini" hanya menandai kartu di browser; penyimpanan lewat bilah keputusan
+    (_keputusan.blade.php). Kartu diabaikan tampil redup tanpa tombol.
 --}}
 @php
     $manual = $saran->aturan_id === null;
     $dipilih = $saran->status === 'dipilih';
+    $diabaikan = $saran->status === 'diabaikan';
     $kelasBadge = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium';
     $kelasTombolUtama = 'inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-indigo-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-50';
     $kelasTombolSekunder = 'inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50';
@@ -18,6 +18,7 @@
         'flex flex-col rounded-2xl bg-white p-5',
         'border-2 border-indigo-900' => $dipilih,
         'border border-gray-200' => ! $dipilih,
+        'opacity-60' => $diabaikan,
     ])>
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -27,7 +28,8 @@
             @else
                 <span class="{{ $kelasBadge }} border-blue-200 bg-blue-50 text-blue-800">Dari aturan</span>
             @endif
-            <span class="{{ $kelasBadge }} hidden border-indigo-300 bg-indigo-50 text-indigo-900" data-penanda-ditandai>Ditandai</span>
+            {{-- Tanpa inline-flex saat awal: kelas display bentrok dengan hidden. JS menukar hidden dan inline-flex. --}}
+            <span class="hidden items-center gap-1.5 rounded-full border border-indigo-300 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-900" data-penanda-ditandai>Ditandai</span>
         </div>
         @include('alternatif-strategi._badge-status', ['status' => $saran->status])
     </div>
@@ -45,21 +47,21 @@
     @endif
 
     <div class="mt-auto space-y-2 pt-5">
-        @if ($dipilih)
-            {{-- TODO PBI-17: aktifkan tombol ini dan arahkan ke formulir tindak lanjut. --}}
-            <button type="button" disabled aria-describedby="keterangan-tindak-lanjut-{{ $saran->id }}" class="{{ $kelasTombolSekunder }}">Buat Tindak Lanjut</button>
-            <p id="keterangan-tindak-lanjut-{{ $saran->id }}" class="text-center text-xs text-gray-500">Tersedia setelah fitur tindak lanjut selesai.</p>
+        @if ($diabaikan)
+            {{-- Alternatif diabaikan tidak bisa diubah lagi, jadi tanpa tombol. --}}
+        @elseif ($dipilih)
+            {{-- PBI-17: satu alternatif hanya punya satu tindak lanjut. --}}
+            @if ($saran->tindakLanjut)
+                <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center text-sm text-emerald-800" dusk="tindak-lanjut-tercatat-{{ $saran->id }}">
+                    Tindak lanjut sudah dicatat sejak {{ $saran->tindakLanjut->tanggal_mulai?->format('d/m/Y') ?? '-' }}.
+                </p>
+            @else
+                <a href="{{ route('guru.tindak-lanjut.create', ['anak' => $saran->anak_id, 'alternatif' => $saran->id]) }}"
+                    dusk="buat-tindak-lanjut-{{ $saran->id }}" class="{{ $kelasTombolUtama }}">Buat Tindak Lanjut</a>
+            @endif
         @else
-            <button type="button" data-tandai aria-pressed="false" @disabled($adaDipilih) dusk="tandai-{{ $saran->id }}"
-                class="{{ $saran->status === 'diabaikan' ? $kelasTombolSekunder : $kelasTombolUtama }}">
-                {{ $saran->status === 'diabaikan' ? 'Tinjau Ulang dan Pilih' : 'Pilih Strategi Ini' }}
-            </button>
-            @if ($saran->status === 'disarankan')
-                <button type="button" data-abaikan dusk="abaikan-{{ $saran->id }}" class="{{ $kelasTombolSekunder }}">Abaikan</button>
-            @endif
-            @if ($adaDipilih)
-                <p class="text-center text-xs text-gray-500">Sudah ada alternatif yang dipilih untuk anak ini.</p>
-            @endif
+            <button type="button" data-tandai aria-pressed="false" dusk="tandai-{{ $saran->id }}" class="{{ $kelasTombolUtama }}">Pilih Strategi Ini</button>
+            <button type="button" data-abaikan dusk="abaikan-{{ $saran->id }}" class="{{ $kelasTombolSekunder }}">Abaikan</button>
         @endif
     </div>
 </article>

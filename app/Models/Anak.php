@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\AnakFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Anak extends Model
 {
@@ -22,6 +24,7 @@ class Anak extends Model
         'nama',
         'nama_panggilan',
         'tanggal_lahir',
+        'usia',
         'aktif',
     ];
 
@@ -29,8 +32,29 @@ class Anak extends Model
     {
         return [
             'tanggal_lahir' => 'date',
+            'usia' => 'integer',
             'aktif' => 'boolean',
         ];
+    }
+
+    /**
+     * Usia dalam bulan penuh pada tanggal acuan (default hari ini).
+     * Dipakai validasi usia 24–59 bulan dan tampilan "N th M bln".
+     */
+    public static function hitungUsiaBulan(CarbonInterface|string $tanggalLahir, ?CarbonInterface $acuan = null): int
+    {
+        $lahir = Carbon::parse($tanggalLahir)->startOfDay();
+        $acuan = ($acuan ?? Carbon::today())->copy()->startOfDay();
+
+        return $lahir->greaterThan($acuan) ? -1 : (int) $lahir->diffInMonths($acuan);
+    }
+
+    /**
+     * Hanya mengubah kolom aktif. Data anak tidak pernah dihapus permanen.
+     */
+    public function ubahStatusAktif(bool $aktif): void
+    {
+        $this->update(['aktif' => $aktif]);
     }
 
     public function kelas(): BelongsTo

@@ -67,8 +67,12 @@
                 <textarea id="catatan" name="catatan" rows="3" maxlength="1000"
                     placeholder="Contoh: anak lebih antusias jika ada panduan visual konkret."
                     class="{{ $kelasInput }} mt-1.5 {{ $bukaLagi && $errors->has('catatan') ? $kelasInputSalah : $kelasInputNormal }}">{{ $bukaLagi ? old('catatan') : '' }}</textarea>
+                <p class="mt-1 flex items-center gap-2 text-xs">
+                    <span class="hidden text-red-600" data-batas-catatan dusk="batas-catatan">Catatan maksimal 1000 karakter.</span>
+                    <span class="ml-auto text-gray-500" data-hitung-catatan dusk="hitung-catatan">0/1000</span>
+                </p>
                 @if ($bukaLagi && $errors->has('catatan'))
-                    <p class="mt-1 text-xs text-red-600" data-pesan-salah>{{ $errors->first('catatan') }}</p>
+                    <p class="mt-1 text-xs text-red-600" data-pesan-salah dusk="salah-catatan">{{ $errors->first('catatan') }}</p>
                 @endif
             </div>
 
@@ -102,6 +106,23 @@
             pratinjau.querySelector('[data-pratinjau-deskripsi]').textContent = deskripsi;
         };
 
+        const catatan = form.elements.catatan;
+        const hitungCatatan = dialog.querySelector('[data-hitung-catatan]');
+        const batasCatatan = dialog.querySelector('[data-batas-catatan]');
+
+        // Tampilkan jumlah karakter dan peringatan saat batas 1000 karakter tercapai.
+        const perbaruiHitung = () => {
+            const maks = Number(catatan.getAttribute('maxlength')) || 1000;
+            const panjang = catatan.value.length;
+            const penuh = panjang >= maks;
+            hitungCatatan.textContent = `${panjang}/${maks}`;
+            hitungCatatan.classList.toggle('text-red-600', penuh);
+            hitungCatatan.classList.toggle('text-gray-500', !penuh);
+            batasCatatan.classList.toggle('hidden', !penuh);
+        };
+
+        catatan.addEventListener('input', perbaruiHitung);
+
         const bersihkanSalah = () => {
             form.querySelectorAll('[data-pesan-salah]').forEach((el) => el.remove());
             form.querySelectorAll('.border-red-500').forEach((el) => {
@@ -121,6 +142,7 @@
             pilihStrategi.value = '';
             form.elements.catatan.value = '';
             perbaruiPratinjau();
+            perbaruiHitung();
             dialog.showModal();
         };
 
@@ -139,6 +161,7 @@
 
         pilihStrategi.addEventListener('change', perbaruiPratinjau);
         perbaruiPratinjau();
+        perbaruiHitung();
 
         if ('bukaOtomatis' in dialog.dataset) {
             dialog.showModal();
