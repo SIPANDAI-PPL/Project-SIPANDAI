@@ -24,6 +24,7 @@ class Anak extends Model
         'nama',
         'nama_panggilan',
         'tanggal_lahir',
+        'usia',
         'aktif',
     ];
 
@@ -31,6 +32,7 @@ class Anak extends Model
     {
         return [
             'tanggal_lahir' => 'date',
+            'usia' => 'integer',
             'aktif' => 'boolean',
         ];
     }
