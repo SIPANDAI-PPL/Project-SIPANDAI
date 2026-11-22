@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\KategoriRespons;
 use App\Models\AlternatifStrategi;
 use App\Models\TindakLanjut;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -25,6 +26,7 @@ class TindakLanjutFactory extends Factory
             'tanggal_mulai' => fake()->dateTimeBetween('-1 month')->format('Y-m-d'),
             // Nilai status: direncanakan, berjalan, selesai.
             'status' => 'direncanakan',
+            'kategori_respons_awal' => fake()->randomElement(KategoriRespons::cases()),
         ];
     }
 }
