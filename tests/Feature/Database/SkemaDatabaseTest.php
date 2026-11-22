@@ -48,7 +48,8 @@ class SkemaDatabaseTest extends TestCase
                 'id', 'anak_id', 'strategi_id', 'aturan_id', 'dasar_saran', 'status', 'dibuat_pada',
             ]],
             'tindak_lanjut' => ['tindak_lanjut', [
-                'id', 'alternatif_id', 'rencana', 'alasan_dugaan_penyebab', 'tanggal_mulai', 'status',
+                // kategori_respons_awal ditambahkan PBI-17.
+                'id', 'alternatif_id', 'rencana', 'alasan_dugaan_penyebab', 'tanggal_mulai', 'status', 'kategori_respons_awal',
             ]],
             'evaluasi_tindak_lanjut' => ['evaluasi_tindak_lanjut', [
                 'id', 'tindak_lanjut_id', 'tanggal', 'kesimpulan', 'catatan',

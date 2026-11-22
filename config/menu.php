@@ -36,5 +36,7 @@ return [
         ['label' => 'Pola Respons', 'rute' => 'guru.pola-respons.index', 'aktif' => 'guru.pola-respons.*'],
         // PBI-15
         ['label' => 'Alternatif Strategi', 'rute' => 'guru.alternatif-strategi.index', 'aktif' => 'guru.alternatif-strategi.*'],
+        // PBI-17
+        ['label' => 'Tindak Lanjut', 'rute' => 'guru.tindak-lanjut.create', 'aktif' => 'guru.tindak-lanjut.*'],
     ],
 ];

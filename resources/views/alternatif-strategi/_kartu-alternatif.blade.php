@@ -46,9 +46,15 @@
 
     <div class="mt-auto space-y-2 pt-5">
         @if ($dipilih)
-            {{-- TODO PBI-17: aktifkan tombol ini dan arahkan ke formulir tindak lanjut. --}}
-            <button type="button" disabled aria-describedby="keterangan-tindak-lanjut-{{ $saran->id }}" class="{{ $kelasTombolSekunder }}">Buat Tindak Lanjut</button>
-            <p id="keterangan-tindak-lanjut-{{ $saran->id }}" class="text-center text-xs text-gray-500">Tersedia setelah fitur tindak lanjut selesai.</p>
+            {{-- PBI-17: satu alternatif hanya punya satu tindak lanjut. --}}
+            @if ($saran->tindakLanjut)
+                <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center text-sm text-emerald-800" dusk="tindak-lanjut-tercatat-{{ $saran->id }}">
+                    Tindak lanjut sudah dicatat sejak {{ $saran->tindakLanjut->tanggal_mulai?->format('d/m/Y') ?? '-' }}.
+                </p>
+            @else
+                <a href="{{ route('guru.tindak-lanjut.create', ['anak' => $saran->anak_id, 'alternatif' => $saran->id]) }}"
+                    dusk="buat-tindak-lanjut-{{ $saran->id }}" class="{{ $kelasTombolUtama }}">Buat Tindak Lanjut</a>
+            @endif
         @else
             <button type="button" data-tandai aria-pressed="false" @disabled($adaDipilih) dusk="tandai-{{ $saran->id }}"
                 class="{{ $saran->status === 'diabaikan' ? $kelasTombolSekunder : $kelasTombolUtama }}">
