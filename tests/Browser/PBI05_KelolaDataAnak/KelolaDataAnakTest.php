@@ -152,7 +152,7 @@ class KelolaDataAnakTest extends DuskTestCase
                 ->assertSeeIn('@tab-aktif', 'Aktif (2)')
                 ->assertDontSeeIn('@daftar-anak', 'Bima')
                 ->click('@tab-nonaktif')
-                ->waitFor('@tab-nonaktif[aria-current="page"]')
+                ->waitFor('[dusk="tab-nonaktif"][aria-current="page"]')
                 ->assertSeeIn('@tab-nonaktif', 'Nonaktif (2)')
                 ->assertSeeIn('@daftar-anak', 'Bima');
         });
