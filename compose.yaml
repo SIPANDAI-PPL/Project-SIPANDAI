@@ -56,14 +56,10 @@ services:
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
-<<<<<<< HEAD
-            - '7900:7900'
-=======
             # noVNC untuk menonton test Dusk: http://localhost:7900
             - '${FORWARD_SELENIUM_VNC_PORT:-7900}:7900'
         environment:
             SE_VNC_NO_PASSWORD: '1'
->>>>>>> origin/main
         volumes:
             - '/dev/shm:/dev/shm'
         networks:
