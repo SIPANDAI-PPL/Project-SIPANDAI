@@ -39,7 +39,7 @@ class SkemaDatabaseTest extends TestCase
             'aktivitas' => ['aktivitas', ['id', 'nama', 'deskripsi', 'aktif']],
             'strategi_pembelajaran' => ['strategi_pembelajaran', ['id', 'nama', 'deskripsi', 'aktif']],
             'kelas' => ['kelas', ['id', 'guru_id', 'nama_kelas', 'kelompok', 'tahun_ajaran']],
-            'anak' => ['anak', ['id', 'kelas_id', 'nama', 'nama_panggilan', 'tanggal_lahir', 'aktif']],
+            'anak' => ['anak', ['id', 'kelas_id', 'nama', 'nama_panggilan', 'tanggal_lahir', 'usia', 'aktif']],
             'aturan_strategi' => ['aturan_strategi', [
                 'id', 'aspek_id', 'strategi_asal_id', 'respons_pemicu', 'minimal_kejadian',
                 'strategi_alternatif_id', 'keterangan', 'aktif',
