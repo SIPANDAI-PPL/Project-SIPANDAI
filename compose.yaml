@@ -54,6 +54,8 @@ services:
         image: selenium/standalone-chromium
         extra_hosts:
             - 'host.docker.internal:host-gateway'
+        ports:
+            - '7900:7900'
         volumes:
             - '/dev/shm:/dev/shm'
         networks:
