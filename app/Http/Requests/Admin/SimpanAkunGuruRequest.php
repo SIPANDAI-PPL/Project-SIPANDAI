@@ -41,7 +41,7 @@ class SimpanAkunGuruRequest extends FormRequest
                 'max:100',
                 Rule::unique('users', 'email')->ignore($this->idDiabaikan()),
             ],
-            'nip' => ['nullable', 'string', 'max:30'],
+            'nip' => ['nullable', 'string', 'max:18'],
         ];
     }
 
@@ -61,7 +61,7 @@ class SimpanAkunGuruRequest extends FormRequest
             'email.email' => 'Format email tidak valid.',
             'email.max' => 'Email maksimal 100 karakter.',
             'email.unique' => 'Email sudah terdaftar.',
-            'nip.max' => 'NIP maksimal 30 karakter.',
+            'nip.max' => 'NIP maksimal 18 karakter.',
             '*.string' => 'Isian tidak valid.',
         ];
     }

@@ -16,7 +16,7 @@
         </div>
 
         @if (session('status'))
-            <p class="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" dusk="pesan-status">{{ session('status') }}</p>
+            <p class="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 transition-opacity duration-500" role="status" data-hilang-otomatis dusk="pesan-status">{{ session('status') }}</p>
         @endif
 
         @if ($kelasTerpilih === null)
@@ -24,21 +24,29 @@
                 Anda belum mengampu kelas, hubungi admin.
             </p>
         @else
-            <form method="GET" action="{{ route('guru.anak.index') }}" class="mt-4 space-y-4">
+            {{-- Kelas dan pencarian sejajar (2 kolom) seperti tab Aktif/Nonaktif; di layar kecil bertumpuk. --}}
+            <form method="GET" action="{{ route('guru.anak.index') }}" class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input type="hidden" name="status" value="{{ $status }}">
                 <div>
-                    <label for="kelas" class="block text-sm font-medium">Kelas</label>
+                    <label for="kelas" class="sr-only">Kelas</label>
                     <select id="kelas" name="kelas" onchange="this.form.submit()" dusk="pilihan-kelas"
-                        class="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2">
+                        class="block w-full rounded border border-gray-300 bg-white px-3 py-2">
                         @foreach ($daftarKelas as $kelas)
                             <option value="{{ $kelas['id'] }}" @selected($kelas['id'] === $kelasTerpilih['id'])>{{ $kelas['label'] }}</option>
                         @endforeach
                     </select>
                 </div>
 
-                <input type="search" name="cari" value="{{ $cari }}" placeholder="Cari nama atau nama panggilan"
-                    aria-label="Cari nama atau nama panggilan"
-                    class="block w-full rounded border border-gray-300 bg-white px-3 py-2">
+                {{-- Ikon dan input berdampingan dalam satu kotak (flex), jadi ikon tidak menimpa teks. --}}
+                <label class="flex items-center gap-2 rounded border border-gray-300 bg-white px-3 focus-within:border-indigo-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="search" name="cari" value="{{ $cari }}" placeholder="Cari nama atau nama panggilan"
+                        aria-label="Cari nama atau nama panggilan"
+                        class="block w-full min-w-0 bg-transparent py-2"
+                        style="border: 0; outline: none; box-shadow: none; padding-left: 0; padding-right: 0;">
+                </label>
             </form>
 
             @php

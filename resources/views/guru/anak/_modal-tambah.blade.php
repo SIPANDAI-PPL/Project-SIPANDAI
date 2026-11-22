@@ -45,6 +45,14 @@
             </div>
 
             <div>
+                <label for="tambah-usia" class="block text-sm font-medium">Usia</label>
+                {{-- Dihitung otomatis dari tanggal lahir, tidak ikut dikirim (tanpa name). --}}
+                <input id="tambah-usia" type="text" readonly tabindex="-1" data-usia-dari="tambah-lahir"
+                    placeholder="Terisi otomatis dari tanggal lahir"
+                    class="mt-1 block w-full cursor-not-allowed rounded border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500">
+            </div>
+
+            <div>
                 <label for="tambah-kelas" class="block text-sm font-medium">Kelas</label>
                 <select id="tambah-kelas" name="kelas_id" required
                     class="mt-1 block w-full rounded border border-gray-300 bg-white px-3 py-2">
