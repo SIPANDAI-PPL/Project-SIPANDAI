@@ -28,7 +28,8 @@
             @else
                 <span class="{{ $kelasBadge }} border-blue-200 bg-blue-50 text-blue-800">Dari aturan</span>
             @endif
-            <span class="{{ $kelasBadge }} hidden border-indigo-300 bg-indigo-50 text-indigo-900" data-penanda-ditandai>Ditandai</span>
+            {{-- Tanpa inline-flex saat awal: kelas display bentrok dengan hidden. JS menukar hidden dan inline-flex. --}}
+            <span class="hidden items-center gap-1.5 rounded-full border border-indigo-300 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-900" data-penanda-ditandai>Ditandai</span>
         </div>
         @include('alternatif-strategi._badge-status', ['status' => $saran->status])
     </div>

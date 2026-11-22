@@ -72,7 +72,9 @@
                 const tombol = lain.querySelector('[data-tandai]');
                 if (!tombol) return;
                 tombol.setAttribute('aria-pressed', aktif ? 'true' : 'false');
-                lain.querySelector('[data-penanda-ditandai]').classList.toggle('hidden', !aktif);
+                const penanda = lain.querySelector('[data-penanda-ditandai]');
+                penanda.classList.toggle('hidden', !aktif);
+                penanda.classList.toggle('inline-flex', aktif);
                 lain.classList.remove(...(aktif ? KELAS_BIASA : KELAS_TANDAI));
                 lain.classList.add(...(aktif ? KELAS_TANDAI : KELAS_BIASA));
             });
