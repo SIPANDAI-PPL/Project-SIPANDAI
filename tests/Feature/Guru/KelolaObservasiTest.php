@@ -329,10 +329,10 @@ class KelolaObservasiTest extends TestCase
 
     /**
      * TC-08-12
-     * Kerangka hapus observasi belum menghapus data dan menampilkan pesan
-     * bahwa fitur menunggu kesepakatan tim.
+     * Menghapus observasi milik guru sendiri menghapus data beserta
+     * riwayat perubahannya.
      */
-    public function test_tc_08_12_hapus_observasi_masih_kerangka_belum_menghapus_data(): void
+    public function test_tc_08_12_menghapus_observasi_beserta_riwayatnya(): void
     {
         RiwayatPerubahan::create([
             'dilakukan_oleh' => $this->guru->id,
@@ -343,18 +343,19 @@ class KelolaObservasiTest extends TestCase
 
         $this->actingAs($this->guru)
             ->delete(route('guru.observasi.destroy', $this->observasi))
-            ->assertRedirect(route('guru.observasi.show', $this->observasi))
-            ->assertSessionHas('gagal');
+            ->assertRedirect(route('guru.observasi.index'))
+            ->assertSessionHas('notifikasi');
 
-        $this->assertDatabaseHas('observasi', ['id' => $this->observasi->id]);
-        $this->assertDatabaseHas('riwayat_perubahan', [
+        $this->assertDatabaseMissing('observasi', ['id' => $this->observasi->id]);
+        $this->assertDatabaseMissing('riwayat_perubahan', [
             'observasi_id' => $this->observasi->id,
         ]);
+        $this->assertDatabaseCount('observasi', 0);
 
+        // Observasi yang sudah dihapus tidak dapat dibuka lagi.
         $this->actingAs($this->guru)
-            ->get(route('guru.observasi.show', $this->observasi))
-            ->assertOk()
-            ->assertSee('belum tersedia');
+            ->get(route('guru.observasi.show', $this->observasi->id))
+            ->assertNotFound();
     }
 
     /**
