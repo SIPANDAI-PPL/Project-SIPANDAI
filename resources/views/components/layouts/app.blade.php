@@ -120,5 +120,41 @@
             perbaruiAria();
         })();
     </script>
+
+    <script>
+        (() => {
+            // Notifikasi pop-up: muncul dengan animasi, lalu hilang otomatis setelah 5 detik.
+            const LAMA_TAMPIL = 5000;
+            const LAMA_ANIMASI = 500;
+
+            document.querySelectorAll('[data-notifikasi-popup]').forEach((popup) => {
+                const kartu = popup.querySelector('[data-kartu-popup]');
+
+                if (!kartu) {
+                    return;
+                }
+
+                // Animasi masuk: class awal (opacity-0 translate-x-4) dilepas setelah
+                // halaman tergambar supaya transisinya berjalan.
+                window.requestAnimationFrame(() => {
+                    window.requestAnimationFrame(() => {
+                        kartu.classList.remove('opacity-0', 'translate-x-4');
+                    });
+                });
+
+                let pewaktu = null;
+
+                const tutup = () => {
+                    window.clearTimeout(pewaktu);
+                    kartu.classList.add('opacity-0', 'translate-x-4');
+                    window.setTimeout(() => popup.remove(), LAMA_ANIMASI);
+                };
+
+                pewaktu = window.setTimeout(tutup, LAMA_TAMPIL);
+
+                popup.querySelector('[data-tutup-notifikasi]')?.addEventListener('click', tutup);
+            });
+        })();
+    </script>
 </body>
 </html>

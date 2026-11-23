@@ -16,22 +16,31 @@
 @endphp
 
 <x-layouts.app title="Detail Observasi">
-    <div class="mx-auto max-w-4xl space-y-6">
+    {{-- Notifikasi berhasil (pop-up, hilang otomatis setelah 5 detik) --}}
+    @if (session('notifikasi'))
+        @php $notif = session('notifikasi'); @endphp
+        <x-notifikasi-toast
+            :judul="$notif['judul']"
+            :pesan="$notif['pesan'] ?? null"
+            :tautan="route('guru.observasi.index')" />
+    @endif
 
-        {{-- Notifikasi --}}
-        @if (session('notifikasi'))
-            @php $notif = session('notifikasi'); @endphp
-            <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">
-                <p class="font-semibold">{{ $notif['judul'] }}</p>
-                <p class="mt-1">{{ $notif['pesan'] }}</p>
-            </div>
-        @endif
+    <div class="mx-auto max-w-4xl space-y-6">
 
         @if (session('gagal'))
             <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
                 {{ session('gagal') }}
             </div>
         @endif
+
+        {{-- Tombol kembali ke daftar observasi --}}
+        <a href="{{ route('guru.observasi.index') }}"
+            class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6" />
+            </svg>
+            Kembali ke Data Observasi
+        </a>
 
         {{-- Judul dan aksi --}}
         <div class="flex flex-wrap items-start justify-between gap-4">
