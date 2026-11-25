@@ -31,12 +31,16 @@ class UbahStatusAlternatifRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'string', Rule::in([AlternatifStrategiService::STATUS_DIPILIH, AlternatifStrategiService::STATUS_DIABAIKAN])],
+            'status' => ['required', 'string', Rule::in([
+                AlternatifStrategiService::STATUS_DIPILIH,
+                AlternatifStrategiService::STATUS_DIABAIKAN,
+                AlternatifStrategiService::STATUS_DISARANKAN,
+            ])],
         ];
     }
 
     /**
-     * Transisi status dan aturan satu alternatif dipilih per anak.
+     * Transisi status dicek di AlternatifStrategiService::alasanTolak.
      *
      * @return array<int, callable>
      */
@@ -64,7 +68,7 @@ class UbahStatusAlternatifRequest extends FormRequest
         return [
             'status.required' => 'Status wajib diisi.',
             'status.string' => 'Status tidak valid.',
-            'status.in' => 'Status hanya boleh dipilih atau diabaikan.',
+            'status.in' => 'Status hanya boleh dipilih, diabaikan, atau disarankan.',
         ];
     }
 }
