@@ -1,25 +1,28 @@
 <?php
 
-namespace Tests\Browser\Guru;
+namespace Tests\Browser\PBI07_FormulirObservasi;
 
 use App\Enums\KategoriRespons;
 use App\Models\Aktivitas;
 use App\Models\Anak;
 use App\Models\AspekPerkembangan;
 use App\Models\Kelas;
+use App\Models\Observasi;
 use App\Models\StrategiPembelajaran;
 use App\Models\User;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Support\Facades\Schema;
 use Laravel\Dusk\Browser;
+use Tests\Browser\Concerns\DataUnik;
 use Tests\DuskTestCase;
 
 // Fitur: PBI-07 Formulir Pencatatan Observasi per Anak
 // Pengujian GUI (Laravel Dusk + Selenium) sesuai TC_PBI7.xlsx.
 class ObservasiTest extends DuskTestCase
 {
-    use DatabaseMigrations;
+    // Tanpa DatabaseMigrations: data hasil test tetap tersimpan di database sipandai_dusk.
+    // Setiap test memakai kode unik agar data antar-run tidak bentrok.
+    use DataUnik;
+
+    private const KATA_SANDI = 'GuruMia#2026';
 
     private const URL_DASHBOARD = '/guru/dashboard';
 
@@ -53,57 +56,52 @@ class ObservasiTest extends DuskTestCase
     {
         parent::setUp();
 
-        // Akun guru (kata sandi bawaan factory: "password").
+        $kode = $this->kodeUnik();
+
+        // Pre Condition: data dummy dibuat lewat factory dengan kode unik, misalnya "Melati k7m2q".
         $this->guru = User::factory()->create([
-            'nama' => 'Mia Stacia',
-            'nama_pengguna' => 'miastacia',
+            'nama' => "Mia Stacia {$kode}",
+            'nama_pengguna' => "mia{$kode}",
+            'email' => "mia.{$kode}@tkceria.sch.id",
+            'kata_sandi' => self::KATA_SANDI,
         ]);
 
         $this->guruLain = User::factory()->create([
-            'nama' => 'Ayu Rizki',
-            'nama_pengguna' => 'ayurizki',
+            'nama' => "Ayu Rizki {$kode}",
+            'nama_pengguna' => "ayu{$kode}",
+            'email' => "ayu.{$kode}@tkceria.sch.id",
         ]);
 
         // Kelas yang menjadi tanggung jawab guru.
         $this->kelasGuru = Kelas::factory()->create([
             'guru_id' => $this->guru->id,
-            'nama_kelas' => 'Melati',
+            'nama_kelas' => "Melati {$kode}",
             'kelompok' => 'TK A',
         ]);
 
         // Kelas milik guru lain.
         $this->kelasGuruLain = Kelas::factory()->create([
             'guru_id' => $this->guruLain->id,
-            'nama_kelas' => 'Cendrawasih',
+            'nama_kelas' => "Cendrawasih {$kode}",
             'kelompok' => 'TK B',
         ]);
 
         // Data master observasi.
-        $this->aktivitas = Aktivitas::factory()->create([
-            'nama' => 'Menyusun balok',
-            'aktif' => true,
-        ]);
-
-        $this->aspek = AspekPerkembangan::factory()->create([
-            'nama' => 'Kognitif',
-        ]);
-
-        $this->strategi = StrategiPembelajaran::factory()->create([
-            'nama' => 'Media visual',
-            'aktif' => true,
-        ]);
+        $this->aktivitas = Aktivitas::factory()->create(['nama' => "Menyusun balok {$kode}", 'aktif' => true]);
+        $this->aspek = AspekPerkembangan::factory()->create(['nama' => "Kognitif {$kode}"]);
+        $this->strategi = StrategiPembelajaran::factory()->create(['nama' => "Media visual {$kode}", 'aktif' => true]);
 
         // Anak pada kelas guru.
         $this->anak1 = Anak::factory()->create([
             'kelas_id' => $this->kelasGuru->id,
-            'nama' => 'Dedek Tirta',
+            'nama' => "Dedek Tirta {$kode}",
             'nama_panggilan' => 'Tirta',
             'aktif' => true,
         ]);
 
         $this->anak2 = Anak::factory()->create([
             'kelas_id' => $this->kelasGuru->id,
-            'nama' => 'Waluyo Putra',
+            'nama' => "Waluyo Putra {$kode}",
             'nama_panggilan' => 'Waluyo',
             'aktif' => true,
         ]);
@@ -111,7 +109,7 @@ class ObservasiTest extends DuskTestCase
         // Anak pada kelas guru lain.
         $this->anakKelasLain = Anak::factory()->create([
             'kelas_id' => $this->kelasGuruLain->id,
-            'nama' => 'Cagak Putra',
+            'nama' => "Cagak Putra {$kode}",
             'nama_panggilan' => 'Cagak',
             'aktif' => true,
         ]);
@@ -119,10 +117,15 @@ class ObservasiTest extends DuskTestCase
         // Anak nonaktif tidak boleh muncul pada formulir baru.
         $this->anakNonaktif = Anak::factory()->create([
             'kelas_id' => $this->kelasGuru->id,
-            'nama' => 'Sadina Putri',
+            'nama' => "Sadina Putri {$kode}",
             'nama_panggilan' => 'Sadina',
             'aktif' => false,
         ]);
+    }
+
+    private function jumlahObservasiGuru(): int
+    {
+        return Observasi::where('guru_id', $this->guru->id)->count();
     }
 
     /**
@@ -133,6 +136,7 @@ class ObservasiTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             // 1. Buka halaman Login -> halaman Login tampil
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
                 ->assertSee('Masuk ke SIPANDAI')
                 ->assertSee('Email atau nama pengguna')
@@ -141,16 +145,16 @@ class ObservasiTest extends DuskTestCase
                 ->assertPresent('input[name="kata_sandi"]');
 
             // 2. Masukkan username dan password -> field terisi
-            $browser->type('login', 'miastacia')
-                ->type('kata_sandi', 'password')
-                ->assertInputValue('login', 'miastacia')
-                ->assertInputValue('kata_sandi', 'password');
+            $browser->type('login', $this->guru->nama_pengguna)
+                ->type('kata_sandi', self::KATA_SANDI)
+                ->assertInputValue('login', $this->guru->nama_pengguna)
+                ->assertInputValue('kata_sandi', self::KATA_SANDI);
 
             // 3. Klik Login -> diarahkan ke Dashboard guru
             $browser->press('Masuk')
                 ->waitForLocation(self::URL_DASHBOARD)
                 ->assertPathIs(self::URL_DASHBOARD)
-                ->assertSee('Selamat datang, Mia Stacia');
+                ->assertSee("Selamat datang, {$this->guru->nama}");
         });
     }
 
@@ -170,10 +174,10 @@ class ObservasiTest extends DuskTestCase
             $browser->click('#kelas_id')
                 ->assertSelectHasOptions('kelas_id', [$this->kelasGuru->id])
                 ->assertSelectMissingOptions('kelas_id', [$this->kelasGuruLain->id])
-                ->assertSeeIn('#kelas_id', 'Melati')
-                ->assertDontSeeIn('#kelas_id', 'Cendrawasih');
+                ->assertSeeIn('#kelas_id', $this->kelasGuru->nama_kelas)
+                ->assertDontSeeIn('#kelas_id', $this->kelasGuruLain->nama_kelas);
 
-            $this->assertSame(['Melati'], $this->opsiTanpaPlaceholder($browser, 'kelas_id'));
+            $this->assertSame([$this->kelasGuru->nama_kelas], $this->opsiTanpaPlaceholder($browser, 'kelas_id'));
 
             // 3. Pilih Melati, klik dropdown Pilih Anak
             $browser->select('kelas_id', $this->kelasGuru->id)
@@ -183,7 +187,7 @@ class ObservasiTest extends DuskTestCase
 
             $anak = $this->opsiTanpaPlaceholder($browser, 'anak_id');
             sort($anak);
-            $this->assertSame(['Dedek Tirta', 'Waluyo Putra'], $anak);
+            $this->assertSame([$this->anak1->nama, $this->anak2->nama], $anak);
         });
     }
 
@@ -209,7 +213,7 @@ class ObservasiTest extends DuskTestCase
 
             $anak = $this->opsiTanpaPlaceholder($browser, 'anak_id');
             sort($anak);
-            $this->assertSame(['Dedek Tirta', 'Waluyo Putra'], $anak);
+            $this->assertSame([$this->anak1->nama, $this->anak2->nama], $anak);
 
             // 3. Pilih Dedek Tirta -> Dedek Tirta terpilih
             $browser->select('anak_id', $this->anak1->id)
@@ -262,7 +266,7 @@ class ObservasiTest extends DuskTestCase
             // 2. Klik dropdown Aktivitas Observasi -> "Menyusun balok" tersedia
             $browser->click('#aktivitas_id')
                 ->assertSelectHasOptions('aktivitas_id', [$this->aktivitas->id])
-                ->assertSeeIn('#aktivitas_id', 'Menyusun balok');
+                ->assertSeeIn('#aktivitas_id', $this->aktivitas->nama);
 
             // 3. Pilih "Menyusun balok" -> terpilih
             $browser->select('aktivitas_id', $this->aktivitas->id)
@@ -286,7 +290,7 @@ class ObservasiTest extends DuskTestCase
             // 2. Klik dropdown Strategi Pembelajaran -> "Media visual" tersedia
             $browser->click('#strategi_id')
                 ->assertSelectHasOptions('strategi_id', [$this->strategi->id])
-                ->assertSeeIn('#strategi_id', 'Media visual');
+                ->assertSeeIn('#strategi_id', $this->strategi->nama);
 
             // 3. Pilih "Media visual" -> terpilih
             $browser->select('strategi_id', $this->strategi->id)
@@ -360,9 +364,9 @@ class ObservasiTest extends DuskTestCase
             $browser->press('Simpan Observasi')
                 ->waitForLocation(self::URL_INDEX)
                 ->assertPathIs(self::URL_INDEX)
-                ->assertSeeIn('.obs-alert.is-success', 'Observasi berhasil disimpan')
-                ->assertSeeIn('table.obs-table', 'Dedek Tirta')
-                ->assertSeeIn('table.obs-table', 'Menyusun balok');
+                ->waitForTextIn('[data-notifikasi-popup]', 'Observasi berhasil disimpan')
+                ->assertSeeIn('table.obs-table', $this->anak1->nama)
+                ->assertSeeIn('table.obs-table', $this->aktivitas->nama);
         });
 
         $this->assertDatabaseHas('observasi', [
@@ -397,7 +401,7 @@ class ObservasiTest extends DuskTestCase
             // 3. Klik Simpan -> tersimpan dengan catatan kosong, notifikasi tampil
             $browser->press('Simpan Observasi')
                 ->waitForLocation(self::URL_INDEX)
-                ->assertSeeIn('.obs-alert.is-success', 'Observasi berhasil disimpan');
+                ->waitForTextIn('[data-notifikasi-popup]', 'Observasi berhasil disimpan');
         });
 
         $this->assertDatabaseHas('observasi', [
@@ -442,7 +446,7 @@ class ObservasiTest extends DuskTestCase
                 ->assertSeeIn('.obs-resp-grid + p.obs-error', 'Pilih salah satu respons anak.');
         });
 
-        $this->assertDatabaseCount('observasi', 0);
+        $this->assertSame(0, $this->jumlahObservasiGuru());
     }
 
     /**
@@ -472,7 +476,7 @@ class ObservasiTest extends DuskTestCase
             // 3. Klik Simpan
             $browser->press('Simpan Observasi')
                 ->waitForLocation(self::URL_INDEX)
-                ->assertSeeIn('.obs-alert.is-success', 'Observasi berhasil disimpan');
+                ->waitForTextIn('[data-notifikasi-popup]', 'Observasi berhasil disimpan');
 
             // 4. Observasi 20 Okt 2026 tampil atas nama Waluyo Putra, bukan Dedek Tirta
             $baris = collect($browser->elements('table.obs-table tbody tr'))
@@ -481,8 +485,8 @@ class ObservasiTest extends DuskTestCase
                 ->values();
 
             $this->assertCount(1, $baris);
-            $this->assertStringContainsString('Waluyo Putra', $baris[0]);
-            $this->assertStringNotContainsString('Dedek Tirta', $baris[0]);
+            $this->assertStringContainsString($this->anak2->nama, $baris[0]);
+            $this->assertStringNotContainsString($this->anak1->nama, $baris[0]);
             $this->assertStringContainsString('Kurang tertarik', $baris[0]);
         });
 
@@ -519,7 +523,7 @@ class ObservasiTest extends DuskTestCase
 
             $browser->press('Simpan Observasi')
                 ->waitForLocation(self::URL_INDEX)
-                ->assertSeeIn('.obs-alert.is-success', 'Observasi berhasil disimpan');
+                ->waitForTextIn('[data-notifikasi-popup]', 'Observasi berhasil disimpan');
 
             // 3. Buka halaman Riwayat Observasi milik Dedek Tirta
             $urlRiwayat = '/guru/anak/'.$this->anak1->id.'/riwayat-observasi';
@@ -530,48 +534,15 @@ class ObservasiTest extends DuskTestCase
                 ->assertSee($this->anak1->nama_panggilan);
 
             // 4. Tampil aktivitas, respons, dan catatan
-            $browser->assertSeeIn('#daftar-observasi', 'Menyusun balok')
+            $browser->assertSeeIn('#daftar-observasi', $this->aktivitas->nama)
                 ->assertSeeIn('#daftar-observasi', 'Terlibat aktif')
                 ->assertSeeIn('#daftar-observasi', 'Catatan observasi PBI-07.');
         });
     }
 
-    /**
-     * TC.Obs.005.001
-     * Penyimpanan observasi gagal karena gangguan database (disimulasikan).
-     */
-    public function test_tc_obs_005_001_penyimpanan_gagal_karena_gangguan_database(): void
-    {
-        $this->browse(function (Browser $browser) {
-            $this->loginGuru($browser);
-
-            // 1. Halaman Formulir Observasi Perkembangan tampil
-            $this->bukaFormulir($browser);
-
-            // 2. Isi formulir dengan data valid
-            $this->isiFormulir($browser);
-            $browser->assertRadioSelected('kategori_respons', KategoriRespons::TerlibatAktif->value);
-
-            // Simulasi gangguan database: INSERT ke tabel observasi dibuat gagal
-            // dengan mengganti nama satu kolom sementara.
-            $this->rusakTabelObservasi();
-
-            try {
-                // 3. Klik Simpan -> Data Observasi, notifikasi gagal tampil
-                $browser->press('Simpan Observasi')
-                    ->waitForLocation(self::URL_INDEX)
-                    ->assertSeeIn('.obs-alert.is-danger', 'Data observasi gagal disimpan')
-                    ->assertMissing('.obs-alert.is-success');
-
-                // 4. Tidak ada data observasi baru
-                $browser->assertSee('Belum ada data observasi pada tahun ajaran ini.');
-            } finally {
-                $this->pulihkanTabelObservasi();
-            }
-        });
-
-        $this->assertDatabaseCount('observasi', 0);
-    }
+    // TC.Obs.005.001 (penyimpanan gagal karena gangguan database) tidak diotomasi dengan Dusk.
+    // Mengganti nama kolom saat test berjalan bisa meninggalkan tabel observasi rusak untuk semua orang.
+    // Skenario ini sudah diuji aman di Feature test TC-07-12 dengan mensimulasikan kegagalan query.
 
     /**
      * TC.Obs.006.001
@@ -585,7 +556,7 @@ class ObservasiTest extends DuskTestCase
             // 1. Kelas Cendrawasih tidak ada di pilihan kelas
             $this->bukaFormulir($browser);
             $browser->assertSelectMissingOptions('kelas_id', [$this->kelasGuruLain->id])
-                ->assertDontSeeIn('#kelas_id', 'Cendrawasih');
+                ->assertDontSeeIn('#kelas_id', $this->kelasGuruLain->nama_kelas);
 
             // 2. Ubah nilai kelas -> Cendrawasih, anak -> Cagak Putra (Inspect Element)
             $this->isiFormulir($browser);
@@ -603,7 +574,7 @@ class ObservasiTest extends DuskTestCase
                 ->assertAttributeContains('#kelas_id', 'class', 'is-invalid');
         });
 
-        $this->assertDatabaseCount('observasi', 0);
+        $this->assertSame(0, $this->jumlahObservasiGuru());
     }
 
     /**
@@ -633,7 +604,7 @@ class ObservasiTest extends DuskTestCase
                 ->assertAttributeContains('#anak_id', 'class', 'is-invalid');
         });
 
-        $this->assertDatabaseCount('observasi', 0);
+        $this->assertSame(0, $this->jumlahObservasiGuru());
     }
 
     // ------------------------------------------------------------------
@@ -645,9 +616,12 @@ class ObservasiTest extends DuskTestCase
      */
     private function loginGuru(Browser $browser): Browser
     {
+        // Sesi browser dipakai ulang antar-test, jadi cookie sesi lama dihapus dulu.
+        $browser->driver->manage()->deleteAllCookies();
+
         return $browser->visit('/login')
-            ->type('login', 'miastacia')
-            ->type('kata_sandi', 'password')
+            ->type('login', $this->guru->nama_pengguna)
+            ->type('kata_sandi', self::KATA_SANDI)
             ->press('Masuk')
             ->waitForLocation(self::URL_DASHBOARD);
     }
@@ -758,21 +732,5 @@ class ObservasiTest extends DuskTestCase
             "const s = document.getElementById('{$id}');"
             ."s.options[s.selectedIndex].value = '{$nilai}';"
         );
-    }
-
-    private function rusakTabelObservasi(): void
-    {
-        Schema::table('observasi', function (Blueprint $table) {
-            $table->renameColumn('catatan_pendukung', 'catatan_pendukung_dusk');
-        });
-    }
-
-    private function pulihkanTabelObservasi(): void
-    {
-        if (Schema::hasColumn('observasi', 'catatan_pendukung_dusk')) {
-            Schema::table('observasi', function (Blueprint $table) {
-                $table->renameColumn('catatan_pendukung_dusk', 'catatan_pendukung');
-            });
-        }
     }
 }

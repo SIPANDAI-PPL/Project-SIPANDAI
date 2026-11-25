@@ -149,12 +149,6 @@
             border: 1px solid;
             border-left-width: 4px;
             border-radius: 14px;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-        }
-
-        .obs-alert.is-hidden {
-            opacity: 0;
-            transform: translateY(-6px);
         }
 
         .obs-alert svg { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; }
@@ -1032,17 +1026,4 @@
             </div>
         </section>
     </div>
-    <script>
-        const notifikasiBerhasil = document.querySelector('.obs-alert.is-success');
-
-        if (notifikasiBerhasil) {
-            setTimeout(() => {
-                notifikasiBerhasil.classList.add('is-hidden');
-
-                setTimeout(() => {
-                    notifikasiBerhasil.remove();
-                }, 300);
-            }, 5000);
-        }
-    </script>
 </x-layouts.app>
