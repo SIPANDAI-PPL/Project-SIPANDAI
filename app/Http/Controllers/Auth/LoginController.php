@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,8 +23,16 @@ class LoginController extends Controller
         return view('auth.login');
     }
 
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
+        $request->validate([
+            'login' => ['required', 'string'],
+            'kata_sandi' => ['required', 'string'],
+        ], [
+            'login.required' => 'Email atau nama pengguna wajib diisi.',
+            'kata_sandi.required' => 'Kata sandi wajib diisi.',
+        ]);
+
         $login = $request->input('login');
         $kolom = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'nama_pengguna';
         $pengguna = User::where($kolom, $login)->first();

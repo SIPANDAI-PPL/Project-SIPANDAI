@@ -202,4 +202,32 @@ class KelolaAkunGuruTest extends DuskTestCase
         // Expected Result - Database: guru tetap wajib mengganti kata sandi.
         $this->assertDatabaseHas('users', ['id' => $this->ayu->id, 'wajib_ganti_sandi' => 1]);
     }
+
+    // TC-01-21 | Negatif | Admin menambah guru dengan NIP lebih dari 18 karakter
+    public function test_tc_01_21_nip_lebih_dari_18_karakter_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+
+        $this->browse(function (Browser $browser) use ($kode) {
+            $this->masukSebagaiAdmin($browser)
+                ->click('@tombol-tambah-guru')
+                ->waitFor('@modal-tambah')
+                ->within('@modal-tambah', function (Browser $modal) use ($kode) {
+                    $modal->type('nama', "Sinta Dewi {$kode}")
+                        ->type('nama_pengguna', "sinta{$kode}")
+                        ->type('email', "sinta.{$kode}@tkceria.sch.id")
+                        ->type('nip', '1992031520210220011')
+                        ->click('@simpan-tambah');
+                })
+                // Expected Result - Tampilan: modal terbuka lagi dengan pesan error di bawah NIP.
+                ->waitFor('@modal-tambah')
+                ->waitForTextIn('@modal-tambah', 'NIP maksimal 18 karakter.')
+                ->assertSeeIn('@modal-tambah', 'NIP maksimal 18 karakter.')
+                ->assertInputValue('#tambah_nama', "Sinta Dewi {$kode}")
+                ->assertMissing('@modal-sandi-sementara');
+        });
+
+        // Expected Result - Database: akun tidak tersimpan.
+        $this->assertDatabaseMissing('users', ['nama_pengguna' => "sinta{$kode}"]);
+    }
 }
