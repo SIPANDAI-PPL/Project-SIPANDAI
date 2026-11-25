@@ -90,6 +90,8 @@ class RiwayatObservasiController extends Controller
                 'kategori_respons' => $observasi->kategori_respons->value,
                 'catatan_pendukung' => $observasi->catatan_pendukung,
                 'jumlah_perubahan' => $observasi->riwayat_perubahan_count,
+                // Riwayat perubahan (PBI-8) hanya boleh dibuka guru yang mencatat observasi.
+                'bisa_lihat_perubahan' => (int) $observasi->guru_id === (int) $request->user()->id,
             ]);
 
         return view('guru.riwayat-observasi', [

@@ -8,6 +8,7 @@ use App\Models\Anak;
 use App\Models\AspekPerkembangan;
 use App\Models\Kelas;
 use App\Models\Observasi;
+use App\Models\RiwayatPerubahan;
 use App\Models\StrategiPembelajaran;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,6 +17,11 @@ use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 // Fitur: PBI-11 Riwayat Observasi Anak dengan Filter
+//
+// Feature: logika data, batas periode, hak akses, dan validasi
+// (TC-11-04, 13, 14, 15, 16, 17 + test pendukung).
+// Tampilan dan interaksi filter di layar ada di tests/Browser/RiwayatObservasiTest.php
+// (TC-11-01, 02, 03, 05, 06, 07, 08, 09, 10, 11, 12).
 class RiwayatObservasiTest extends TestCase
 {
     use RefreshDatabase;
@@ -115,59 +121,6 @@ class RiwayatObservasiTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_tc_11_01_riwayat_tampil_kronologis_dan_penghitung_14(): void
-    {
-        $respons = $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', $this->anak1->id))
-            ->assertOk()
-            ->assertSee('14 catatan');
-
-        // 14 catatan tampil semua (tanpa harus klik "Muat lebih banyak").
-        $this->assertSame(14, substr_count($respons->getContent(), 'Catatan ke-'));
-
-        // Terbaru (catatan 14) di atas, terlama (catatan 1) di bawah.
-        $respons->assertSeeInOrder([
-            'Catatan ke-14',
-            'Catatan ke-13',
-            'Catatan ke-12',
-            'Catatan ke-11',
-            'Catatan ke-10',
-            'Catatan ke-09',
-            'Catatan ke-08',
-            'Catatan ke-07',
-            'Catatan ke-06',
-            'Catatan ke-05',
-            'Catatan ke-04',
-            'Catatan ke-03',
-            'Catatan ke-02',
-            'Catatan ke-01',
-        ]);
-    }
-
-    public function test_tc_11_02_kartu_observasi_memuat_data_lengkap(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', $this->anak1->id))
-            ->assertOk()
-            ->assertSee('15 Okt 2026')
-            ->assertSee('Aspek: Kognitif')
-            ->assertSee('Strategi: Media visual')
-            ->assertSee('Menyusun balok')
-            ->assertSee('Kurang tertarik')
-            ->assertSee('Catatan ke-14');
-    }
-
-    public function test_tc_11_03_filter_periode_bulan(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', ['anak' => $this->anak1->id, 'periode' => '2026-10']))
-            ->assertOk()
-            ->assertSee('12 dari 14 catatan')
-            ->assertSee('Catatan ke-03')
-            ->assertDontSee('Catatan ke-02')
-            ->assertDontSee('Catatan ke-01');
-    }
-
     public function test_tc_11_04_batas_periode_masuk_perhitungan(): void
     {
         $anakBatas = Anak::factory()->create([
@@ -228,107 +181,6 @@ class RiwayatObservasiTest extends TestCase
             ->assertDontSee('Belum ada observasi yang sesuai');
 
         $this->assertSame(14, substr_count($this->get(route('guru.riwayat-observasi', $this->anak1->id))->getContent(), 'Catatan ke-'));
-    }
-
-    public function test_tc_11_05_filter_aspek(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', [
-                'anak' => $this->anak1->id,
-                'aspek' => $this->aspek['Sosial Emosional']->id,
-            ]))
-            ->assertOk()
-            ->assertSee('2 dari 14 catatan')
-            ->assertSee('Catatan ke-11')
-            ->assertSee('Catatan ke-07')
-            ->assertDontSee('Catatan ke-14');
-    }
-
-    public function test_tc_11_06_filter_aktivitas(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', [
-                'anak' => $this->anak1->id,
-                'aktivitas' => $this->aktivitas['Menyusun balok']->id,
-            ]))
-            ->assertOk()
-            ->assertSee('5 dari 14 catatan');
-    }
-
-    public function test_tc_11_07_filter_strategi(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', [
-                'anak' => $this->anak1->id,
-                'strategi' => $this->strategi['Media visual']->id,
-            ]))
-            ->assertOk()
-            ->assertSee('6 dari 14 catatan');
-    }
-
-    public function test_tc_11_08_filter_kategori_respons(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', [
-                'anak' => $this->anak1->id,
-                'respons' => KategoriRespons::KurangTertarik->value,
-            ]))
-            ->assertOk()
-            ->assertSee('6 dari 14 catatan');
-    }
-
-    public function test_tc_11_09_kombinasi_filter_aspek_dan_respons(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', [
-                'anak' => $this->anak1->id,
-                'aspek' => $this->aspek['Kognitif']->id,
-                'respons' => KategoriRespons::KurangTertarik->value,
-            ]))
-            ->assertOk()
-            ->assertSee('5 dari 14 catatan')
-            ->assertSee('Catatan ke-14')
-            ->assertDontSee('Catatan ke-12');
-    }
-
-    public function test_tc_11_10_hapus_filter_mengembalikan_seluruh_catatan(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', [
-                'anak' => $this->anak1->id,
-                'aspek' => $this->aspek['Kognitif']->id,
-                'respons' => KategoriRespons::KurangTertarik->value,
-            ]))
-            ->assertSee('Hapus filter')
-            ->assertSee('href="'.route('guru.riwayat-observasi', $this->anak1->id).'"', false);
-
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', $this->anak1->id))
-            ->assertOk()
-            ->assertSee('14 catatan');
-    }
-
-    public function test_tc_11_11_filter_tanpa_hasil_tampil_pesan_kosong(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', [
-                'anak' => $this->anak1->id,
-                'aspek' => $this->aspek['Seni']->id,
-                'respons' => KategoriRespons::KurangTertarik->value,
-            ]))
-            ->assertOk()
-            ->assertSee('Belum ada observasi yang sesuai')
-            ->assertSee('0 dari 14 catatan')
-            ->assertSee('Hapus filter');
-    }
-
-    public function test_tc_11_12_anak_belum_punya_observasi(): void
-    {
-        $this->actingAs($this->guruA)
-            ->get(route('guru.riwayat-observasi', $this->anak2->id))
-            ->assertOk()
-            ->assertSee('Belum ada observasi')
-            ->assertSee($this->anak2->nama_panggilan);
     }
 
     public function test_tc_11_13_hanya_menampilkan_observasi_anak_yang_dipilih(): void
@@ -422,6 +274,55 @@ class RiwayatObservasiTest extends TestCase
             ->assertSee('Oktober 2026')
             ->assertSee('September 2026')
             ->assertDontSee('Agustus 2026');
+    }
+
+    public function test_judul_riwayat_memakai_nama_lengkap_seperti_halaman_observasi(): void
+    {
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', $this->anak1->id))
+            ->assertOk()
+            ->assertSee('Dedek Tirta')
+            ->assertSee('Tirta');
+    }
+
+    public function test_tautan_lihat_perubahan_membuka_riwayat_perubahan_observasi(): void
+    {
+        $observasi = Observasi::where('anak_id', $this->anak1->id)->latest('tanggal')->firstOrFail();
+
+        RiwayatPerubahan::create([
+            'dilakukan_oleh' => $this->guruA->id,
+            'observasi_id' => $observasi->id,
+            'aksi' => 'ubah',
+            'keterangan' => 'Kategori respons diperbarui.',
+        ]);
+
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', $this->anak1->id))
+            ->assertOk()
+            ->assertSee('Diubah 1x')
+            ->assertSee('href="'.route('guru.observasi.riwayat', $observasi).'"', false);
+    }
+
+    public function test_lihat_perubahan_tidak_ditautkan_untuk_observasi_guru_lain(): void
+    {
+        // Observasi dicatat guru lain (misalnya pengampu sebelumnya); halaman riwayat
+        // perubahannya hanya boleh dibuka pencatatnya, jadi tidak diberi tautan.
+        $observasi = $this->buatObservasi($this->anak1, '2026-10-20', 'Seni', 'Mewarnai gambar', 'Media visual', KategoriRespons::TerlibatAktif, 'Catatan guru lain');
+        $observasi->update(['guru_id' => User::factory()->create()->id]);
+
+        RiwayatPerubahan::create([
+            'dilakukan_oleh' => $observasi->guru_id,
+            'observasi_id' => $observasi->id,
+            'aksi' => 'ubah',
+            'keterangan' => 'Catatan diperbarui.',
+        ]);
+
+        $this->actingAs($this->guruA)
+            ->get(route('guru.riwayat-observasi', $this->anak1->id))
+            ->assertOk()
+            ->assertSee('Catatan guru lain')
+            ->assertSee('Diubah 1x')
+            ->assertDontSee('href="'.route('guru.observasi.riwayat', $observasi).'"', false);
     }
 
     /**
