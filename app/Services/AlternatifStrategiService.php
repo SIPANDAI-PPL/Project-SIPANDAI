@@ -181,7 +181,7 @@ class AlternatifStrategiService
      * saran_aturan berisi SEMUA saran dari aturan untuk anak ini, termasuk saran lama yang sudah
      * dipilih/diabaikan, karena pola hanya menyimpan saran terakhir per aturan.
      *
-     * @return array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool, saran_aturan: Collection}
+     * @return array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool, saran_aturan: Collection, observasi_strategi_saat_ini: Collection}
      */
     public function dataAnak(Anak $anak): array
     {
@@ -197,7 +197,34 @@ class AlternatifStrategiService
                 ->with('strategi')
                 ->orderBy('id')
                 ->get(),
+            'observasi_strategi_saat_ini' => $this->observasiTerakhirPerStrategi(
+                $anak,
+                $item['pola']->pluck('aturan.strategi_asal_id')->unique()->values()->all(),
+            ),
         ];
+    }
+
+    /**
+     * Observasi terakhir anak untuk tiap strategi (urut tanggal lalu id, terbaru), untuk catatan
+     * di kartu "Strategi saat ini". Data observasi hanya dibaca.
+     *
+     * @param  list<int>  $strategiIds
+     * @return Collection<int, Observasi> kunci strategi_id
+     */
+    private function observasiTerakhirPerStrategi(Anak $anak, array $strategiIds): Collection
+    {
+        if ($strategiIds === []) {
+            return collect();
+        }
+
+        return Observasi::query()
+            ->where('anak_id', $anak->id)
+            ->whereIn('strategi_id', $strategiIds)
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id')
+            ->get(['id', 'strategi_id', 'tanggal', 'catatan_pendukung'])
+            ->unique('strategi_id')
+            ->keyBy('strategi_id');
     }
 
     /**

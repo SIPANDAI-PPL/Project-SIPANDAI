@@ -49,8 +49,29 @@
         @endif
     </div>
 
+    {{-- Banner sukses tampil 5 detik, lalu memudar 500 ms dan dihapus. Banner error tidak hilang otomatis. --}}
     @if (session('status'))
-        <p class="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" dusk="pesan-status">{{ session('status') }}</p>
+        <div data-flash role="status" dusk="pesan-status"
+            class="mt-4 flex items-start justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 transition-opacity duration-500">
+            <p>{{ session('status') }}</p>
+            <button type="button" data-tutup-flash aria-label="Tutup" dusk="tutup-pesan-status"
+                class="-my-1 shrink-0 px-1 text-xl leading-none text-green-700 hover:text-green-900">&times;</button>
+        </div>
+        <script>
+            (() => {
+                document.querySelectorAll('[data-flash]').forEach((banner) => {
+                    let ditutup = false;
+                    const tutup = () => {
+                        if (ditutup) return;
+                        ditutup = true;
+                        banner.classList.add('opacity-0');
+                        setTimeout(() => banner.remove(), 500);
+                    };
+                    setTimeout(tutup, 5000);
+                    banner.querySelector('[data-tutup-flash]').addEventListener('click', tutup);
+                });
+            })();
+        </script>
     @endif
 
     @if ($errors->any())
@@ -227,8 +248,10 @@
                                     @if ($saran->strategi->deskripsi)
                                         <p class="mt-1 text-xs leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
                                     @endif
-                                    @if ($saran->dasar_saran)
+                                    @if (filled($saran->dasar_saran))
                                         <p class="mt-1.5 text-xs leading-relaxed text-gray-600"><span class="font-medium">Catatan guru:</span> {{ $saran->dasar_saran }}</p>
+                                    @else
+                                        <p class="mt-1.5 text-xs leading-relaxed text-gray-600"><span class="font-medium">Catatan guru:</span> <span class="italic text-gray-500" dusk="catatan-kosong">Belum ada catatan.</span></p>
                                     @endif
                                 </div>
                             @endforeach

@@ -176,4 +176,114 @@ class TampilanAlternatifStrategiTest extends TestCase
             ->assertSee('Belum ada alternatif')
             ->assertSee('1 dari minimal 3 kejadian');
     }
+
+    // TC-15-25
+    public function test_tc_15_25_alternatif_manual_tanpa_catatan_menampilkan_belum_ada_catatan(): void
+    {
+        AlternatifStrategi::factory()->create([
+            'anak_id' => $this->anak1->id,
+            'strategi_id' => $this->s['S4']->id,
+            'aturan_id' => null,
+            'dasar_saran' => null,
+            'status' => 'disarankan',
+        ]);
+
+        $respons = $this->actingAs($this->guruA)->get('/guru/alternatif-strategi/anak/'.$this->anak1->id);
+
+        $respons->assertOk()
+            ->assertSee('dusk="catatan-kosong">Belum ada catatan.<', false);
+    }
+
+    // TC-15-26
+    public function test_tc_15_26_alternatif_manual_dengan_catatan_tidak_menampilkan_belum_ada_catatan(): void
+    {
+        $this->tambahManual($this->anak1, 'Lebih antusias dengan teman dekat.');
+
+        $this->actingAs($this->guruA)
+            ->get('/guru/alternatif-strategi/anak/'.$this->anak1->id)
+            ->assertOk()
+            ->assertSee('Lebih antusias dengan teman dekat.')
+            ->assertDontSee('Belum ada catatan.')
+            ->assertDontSee('dusk="catatan-kosong"', false);
+    }
+
+    // TC-15-27
+    public function test_tc_15_27_pesan_status_dirender_dengan_data_flash_dan_tombol_tutup(): void
+    {
+        $this->tambahManual($this->anak1, 'Catatan guru untuk anak satu.');
+
+        $html = $this->actingAs($this->guruA)
+            ->withSession(['status' => 'Alternatif strategi untuk Anak Satu berhasil ditambahkan.'])
+            ->get('/guru/alternatif-strategi/anak/'.$this->anak1->id)
+            ->assertOk()
+            ->assertSee('Alternatif strategi untuk Anak Satu berhasil ditambahkan.')
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/<div[^>]*\bdata-flash\b[^>]*dusk="pesan-status"/', $html);
+        $this->assertMatchesRegularExpression('/<button type="button"[^>]*aria-label="Tutup"[^>]*dusk="tutup-pesan-status"/', $html);
+    }
+
+    /** Observasi anak 1 dengan strategi saat ini (S1) dan catatan tertentu. */
+    private function catatObservasiBercatatan(string $tanggal, ?string $catatan): void
+    {
+        Observasi::factory()->create([
+            'anak_id' => $this->anak1->id,
+            'strategi_id' => $this->s['S1']->id,
+            'aspek_id' => $this->aspek['Kognitif']->id,
+            'kategori_respons' => KategoriRespons::KurangTertarik,
+            'tanggal' => $tanggal,
+            'catatan_pendukung' => $catatan,
+        ]);
+    }
+
+    // TC-15-28
+    public function test_tc_15_28_strategi_saat_ini_menampilkan_catatan_observasi_terakhir(): void
+    {
+        $this->catatObservasi($this->anak1, 3);
+        $this->catatObservasiBercatatan('2026-11-10', 'Catatan lama yang tidak tampil.');
+        $this->catatObservasiBercatatan('2026-11-20', 'Anak tampak bosan saat cerita <b>panjang</b>.');
+
+        $this->actingAs($this->guruA)
+            ->get('/guru/alternatif-strategi/anak/'.$this->anak1->id)
+            ->assertOk()
+            ->assertSee('dusk="catatan-strategi-saat-ini">Anak tampak bosan saat cerita &lt;b&gt;panjang&lt;/b&gt;.<', false)
+            ->assertDontSee('Catatan lama yang tidak tampil.')
+            ->assertDontSee('dusk="catatan-strategi-saat-ini-kosong"', false);
+    }
+
+    // TC-15-29
+    public function test_tc_15_29_strategi_saat_ini_tanpa_catatan_menampilkan_belum_ada_catatan(): void
+    {
+        $this->catatObservasi($this->anak1, 3);
+        $this->catatObservasiBercatatan('2026-11-10', 'Catatan lama yang tidak tampil.');
+        $this->catatObservasiBercatatan('2026-11-20', '   ');
+
+        $this->actingAs($this->guruA)
+            ->get('/guru/alternatif-strategi/anak/'.$this->anak1->id)
+            ->assertOk()
+            ->assertSee('dusk="catatan-strategi-saat-ini-kosong">Belum ada catatan.<', false)
+            ->assertDontSee('Catatan lama yang tidak tampil.')
+            ->assertDontSee('dusk="catatan-strategi-saat-ini"', false);
+    }
+
+    // TC-15-30
+    public function test_tc_15_30_alternatif_manual_tanpa_catatan_tanpa_label_catatan_guru(): void
+    {
+        $saran = AlternatifStrategi::factory()->create([
+            'anak_id' => $this->anak1->id,
+            'strategi_id' => $this->s['S4']->id,
+            'aturan_id' => null,
+            'dasar_saran' => null,
+            'status' => 'disarankan',
+        ]);
+
+        $html = $this->actingAs($this->guruA)
+            ->get('/guru/alternatif-strategi/anak/'.$this->anak1->id)
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, preg_match('/<article dusk="kartu-saran-'.$saran->id.'".*?<\/article>/s', $html, $kartu));
+        $this->assertStringContainsString('dusk="catatan-kosong">Belum ada catatan.<', $kartu[0]);
+        $this->assertStringNotContainsString('Catatan guru:', $kartu[0]);
+    }
 }
