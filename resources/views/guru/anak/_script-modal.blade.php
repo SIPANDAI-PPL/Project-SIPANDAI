@@ -17,8 +17,8 @@
         }
     });
 
-    // Kolom Usia terisi otomatis dari tanggal lahir. Hitungannya sama dengan
-    // Anak::hitungUsiaBulan di server: jumlah bulan penuh sampai hari ini.
+    // Kolom Usia terisi otomatis dari tanggal lahir dalam tahun penuh, sama dengan
+    // Anak::hitungUsiaTahun di server. Batas usia tetap dicek dalam bulan (24–59 bulan).
     document.querySelectorAll('[data-usia-dari]').forEach(function (kolomUsia) {
         var kolomLahir = document.getElementById(kolomUsia.dataset.usiaDari);
         if (!kolomLahir) return;
@@ -35,7 +35,7 @@
             var bulan = (hariIni.getFullYear() - lahir.getFullYear()) * 12 + (hariIni.getMonth() - lahir.getMonth());
             if (hariIni.getDate() < lahir.getDate()) bulan--;
 
-            var teks = Math.floor(bulan / 12) + ' th ' + (bulan % 12) + ' bln (' + bulan + ' bulan)';
+            var teks = Math.floor(bulan / 12) + ' tahun';
             if (bulan < 24 || bulan > 59) teks += ' · di luar batas 24–59 bulan';
             kolomUsia.value = teks;
         }
