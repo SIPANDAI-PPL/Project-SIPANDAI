@@ -3,7 +3,9 @@
 namespace Tests\Browser\PBI02_AktivitasStrategi;
 
 use App\Models\Aktivitas;
+use App\Models\AturanStrategi;
 use App\Models\Observasi;
+use App\Models\StrategiPembelajaran;
 use Laravel\Dusk\Browser;
 use Tests\Browser\Concerns\DataUnik;
 use Tests\DuskTestCase;
@@ -152,5 +154,118 @@ class DataMasterTest extends DuskTestCase
 
         $this->assertSame($jumlahAwal, Aktivitas::count());
         $this->assertDatabaseHas('aktivitas', ['id' => $this->data['ak5']->id, 'aktif' => true]);
+    }
+
+    // TC-02-14 | Negatif | Admin menyimpan aktivitas dengan nama kosong
+    public function test_tc_02_14_nama_kosong_menampilkan_pesan_error(): void
+    {
+        $jumlahAwal = Aktivitas::count();
+
+        $this->browse(function (Browser $browser) {
+            $this->bukaDaftarAktivitasTestIni($browser)
+                ->click('@tombol-tambah')
+                ->whenAvailable('@modal-tambah', function (Browser $modal) {
+                    $modal->type('deskripsi', 'Deskripsi tanpa nama.')
+                        ->click('@simpan-tambah');
+                })
+                // Expected Result - Tampilan: modal terbuka lagi dengan pesan error dari server.
+                ->waitFor('@error-tambah-nama')
+                ->assertSeeIn('@error-tambah-nama', 'Nama wajib diisi.')
+                ->assertMissing('@pesan-status');
+        });
+
+        // Expected Result - Database: tidak ada aktivitas baru.
+        $this->assertSame($jumlahAwal, Aktivitas::count());
+    }
+
+    // TC-02-16 | Negatif | Nama aktivitas lebih dari 100 karakter
+    public function test_tc_02_16_nama_lebih_dari_100_karakter_dibatasi_form(): void
+    {
+        $jumlahAwal = Aktivitas::count();
+        $namaPanjang = str_repeat('a', 101);
+
+        $this->browse(function (Browser $browser) use ($namaPanjang) {
+            $this->bukaDaftarAktivitasTestIni($browser)
+                ->click('@tombol-tambah')
+                ->whenAvailable('@modal-tambah', function (Browser $modal) use ($namaPanjang) {
+                    $modal->type('nama', $namaPanjang)
+                        ->assertSee('Maksimal 100 karakter.');
+                });
+
+            // Expected Result - Tampilan: form hanya menerima 100 karakter pertama.
+            $this->assertSame(100, mb_strlen($browser->value('#tambah_nama')));
+        });
+
+        // Expected Result - Database: belum ada data yang tersimpan.
+        $this->assertSame($jumlahAwal, Aktivitas::count());
+        $this->assertDatabaseMissing('aktivitas', ['nama' => $namaPanjang]);
+    }
+
+    // TC-02-17 | Negatif | Menghapus aktivitas yang sudah dipakai observasi ditolak
+    public function test_tc_02_17_hapus_aktivitas_yang_sudah_dipakai_menampilkan_pesan_error(): void
+    {
+        $ak1 = $this->data['ak1'];
+        $ak5 = $this->data['ak5'];
+
+        $this->browse(function (Browser $browser) use ($ak1, $ak5) {
+            // Aktivitas yang sudah dipakai tidak punya menu Hapus.
+            $this->bukaDaftarAktivitasTestIni($browser)
+                ->click('@menu-aksi-'.$ak1->id)
+                ->waitFor('@aksi-nonaktifkan-'.$ak1->id)
+                ->assertMissing('@aksi-hapus-'.$ak1->id)
+                // Muat ulang supaya menu yang terbuka tidak menutupi tombol baris lain.
+                ->refresh()
+                ->waitFor('@menu-aksi-'.$ak5->id)
+                ->click('@menu-aksi-'.$ak5->id)
+                ->waitFor('@aksi-hapus-'.$ak5->id)
+                ->click('@aksi-hapus-'.$ak5->id)
+                ->waitFor('@modal-hapus');
+
+            // Selama dialog terbuka, guru lain mencatat observasi dengan aktivitas ini.
+            Observasi::factory()->create(['aktivitas_id' => $ak5->id]);
+
+            $browser->click('@konfirmasi-hapus')
+                // Expected Result - Tampilan: server menolak dengan pesan error.
+                ->waitFor('@pesan-gagal-hapus')
+                ->assertSeeIn('@pesan-gagal-hapus', 'Data sudah dipakai pada 1 observasi dan hanya dapat dinonaktifkan.')
+                ->assertMissing('@pesan-status');
+        });
+
+        // Expected Result - Database: aktivitas tetap ada.
+        $this->assertDatabaseHas('aktivitas', ['id' => $ak5->id]);
+    }
+
+    // TC-02-18 | Negatif | Menghapus strategi yang sudah dipakai aturan ditolak
+    public function test_tc_02_18_hapus_strategi_yang_dipakai_aturan_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+        $st6 = $this->data['st6'];
+        $tutorSebaya = StrategiPembelajaran::factory()->create(['nama' => "Tutor sebaya {$kode}"]);
+
+        $this->browse(function (Browser $browser) use ($kode, $st6, $tutorSebaya) {
+            // Strategi yang sudah dipakai aturan tidak punya menu Hapus.
+            $browser->loginAs($this->data['admin'])
+                ->visitRoute('data-master.strategi.index', ['q' => $kode])
+                ->waitFor('@baris-'.$tutorSebaya->id)
+                ->click('@menu-aksi-'.$st6->id)
+                ->waitFor('@aksi-nonaktifkan-'.$st6->id)
+                ->assertMissing('@aksi-hapus-'.$st6->id)
+                ->refresh()
+                ->waitFor('@menu-aksi-'.$tutorSebaya->id)
+                ->click('@menu-aksi-'.$tutorSebaya->id)
+                ->waitFor('@aksi-hapus-'.$tutorSebaya->id)
+                ->click('@aksi-hapus-'.$tutorSebaya->id)
+                ->waitFor('@modal-hapus');
+
+            // Selama dialog terbuka, admin lain memakai strategi ini di aturan baru.
+            AturanStrategi::factory()->create(['strategi_asal_id' => $tutorSebaya->id]);
+
+            $browser->click('@konfirmasi-hapus')
+                ->waitFor('@pesan-gagal-hapus')
+                ->assertSeeIn('@pesan-gagal-hapus', 'Data sudah dipakai pada 1 aturan strategi dan hanya dapat dinonaktifkan.')
+                ->assertMissing('@pesan-status');
+        });
+
+        $this->assertDatabaseHas('strategi_pembelajaran', ['id' => $tutorSebaya->id]);
     }
 }
