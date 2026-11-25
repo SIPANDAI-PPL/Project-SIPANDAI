@@ -45,10 +45,10 @@
             </div>
 
             <div>
-                <label for="tambah-usia" class="block text-sm font-medium">Usia</label>
+                <label for="tambah-usia" class="block text-sm font-medium">Usia (tahun)</label>
                 {{-- Dihitung otomatis dari tanggal lahir, tidak ikut dikirim (tanpa name). --}}
                 <input id="tambah-usia" type="text" readonly tabindex="-1" data-usia-dari="tambah-lahir"
-                    placeholder="Terisi otomatis dari tanggal lahir"
+                    placeholder="Terisi otomatis dari tanggal lahir, dalam tahun"
                     class="mt-1 block w-full cursor-not-allowed rounded border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500">
             </div>
 

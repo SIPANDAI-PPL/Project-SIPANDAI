@@ -134,9 +134,9 @@ class KelolaDataAnakTest extends TestCase
             ->assertDontSee('Anggrek')
             ->assertSee('Aktif (3)')
             ->assertSee('Nonaktif (1)')
-            ->assertSeeInOrder(['Alya', '3 th 4 bln', 'Terlibat aktif', 'Hari ini'])
-            ->assertSeeInOrder(['Bima', '3 th 9 bln', 'Belum diobservasi'])
-            ->assertSeeInOrder(['Dedek', '4 th 2 bln', 'Kurang tertarik', 'Hari ini'])
+            ->assertSeeInOrder(['Alya', '3 tahun', 'Terlibat aktif', 'Hari ini'])
+            ->assertSeeInOrder(['Bima', '3 tahun', 'Belum diobservasi'])
+            ->assertSeeInOrder(['Dedek', '4 tahun', 'Kurang tertarik', 'Hari ini'])
             ->assertDontSee('Faris')
             ->assertDontSee('Gita')
             ->assertDontSee('Hanif');
@@ -200,6 +200,8 @@ class KelolaDataAnakTest extends TestCase
             'nama' => 'Rani Kartika',
             'nama_panggilan' => 'Rani',
             'kelas_id' => $this->kelasB1->id,
+            // 42 bulan disimpan sebagai 3 tahun penuh.
+            'usia' => 3,
             'aktif' => 1,
         ]);
 
@@ -244,6 +246,23 @@ class KelolaDataAnakTest extends TestCase
         $this->assertSame('Aya', $this->c1->fresh()->nama_panggilan);
         // Riwayat observasi tidak berubah.
         $this->assertSame(2, $this->c1->observasi()->count());
+    }
+
+    public function test_tc_05_06_mengubah_tanggal_lahir_menghitung_ulang_usia_dalam_tahun(): void
+    {
+        $this->actingAs($this->g1)
+            ->put(route('guru.anak.update', $this->c1), $this->dataForm([
+                'nama' => $this->c1->nama,
+                'nama_panggilan' => $this->c1->nama_panggilan,
+                'tanggal_lahir' => now()->subMonths(50)->format('Y-m-d'),
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(4, $this->c1->fresh()->usia);
+
+        $this->actingAs($this->g1)
+            ->get(route('guru.anak.show', $this->c1))
+            ->assertSee('4 tahun');
     }
 
     public function test_tc_05_07_memindahkan_anak_ke_kelas_lain_yang_diampu_guru_yang_sama(): void
@@ -488,6 +507,15 @@ class KelolaDataAnakTest extends TestCase
         $this->actingAs($this->g1)
             ->get(route('guru.anak.index'))
             ->assertRedirect(route('kata-sandi.edit'));
+    }
+
+    public function test_tc_05_13_14_hitung_usia_tahun_pada_model_anak(): void
+    {
+        $this->assertSame(2, Anak::hitungUsiaTahun('2024-11-16'));
+        $this->assertSame(1, Anak::hitungUsiaTahun('2024-11-17'));
+        $this->assertSame(4, Anak::hitungUsiaTahun('2021-11-17'));
+        $this->assertSame(5, Anak::hitungUsiaTahun('2021-11-16'));
+        $this->assertSame(0, Anak::hitungUsiaTahun('2026-11-17'));
     }
 
     public function test_tc_05_13_14_hitung_usia_bulan_pada_model_anak(): void
