@@ -23,6 +23,11 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('guru.observasi.index') }}"
+                    class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Data Observasi
+                </a>
+
                 <a href="{{ route('guru.observasi.show', $observasi) }}"
                     class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
                     Kembali ke Detail
