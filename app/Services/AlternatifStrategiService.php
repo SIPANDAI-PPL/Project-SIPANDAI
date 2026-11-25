@@ -28,10 +28,12 @@ class AlternatifStrategiService
 
     /**
      * PBI-16: transisi status yang boleh dilakukan guru, [status lama => daftar status baru].
-     * Hanya saran disarankan yang bisa diputuskan. Alternatif dipilih/diabaikan tidak bisa diubah lagi.
+     * Saran disarankan bisa dipilih atau diabaikan. Alternatif diabaikan bisa ditinjau ulang (kembali
+     * disarankan) dari riwayat, tetapi tidak langsung dipilih. Alternatif dipilih tidak bisa diubah lagi.
      */
     private const TRANSISI = [
         self::STATUS_DISARANKAN => [self::STATUS_DIPILIH, self::STATUS_DIABAIKAN],
+        self::STATUS_DIABAIKAN => [self::STATUS_DISARANKAN],
     ];
 
     public const PESAN_STRATEGI_GANDA = 'Strategi ini sudah ada di daftar saran anak.';
@@ -180,7 +182,13 @@ class AlternatifStrategiService
      * saran_aturan berisi SEMUA saran dari aturan untuk anak ini, termasuk saran lama yang sudah
      * dipilih/diabaikan, karena pola hanya menyimpan saran terakhir per aturan.
      *
-     * @return array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool, saran_aturan: Collection}
+     * PBI-16: semua alternatif (dari aturan dan buatan guru) dipisah menjadi
+     * - alternatif_aktif: disarankan dan dipilih, urut dipilih, disarankan, lalu terbaru dulu;
+     * - riwayat: diabaikan, terbaru dulu. Tabel alternatif_strategi tidak punya kolom waktu ubah status
+     *   (hanya dibuat_pada), jadi riwayat diurut id menurun.
+     *   TODO: urut berdasarkan waktu diabaikan jika kolomnya sudah ditambahkan.
+     *
+     * @return array{anak: Anak, pola: Collection, manual: Collection, punya_saran: bool, saran_aturan: Collection, alternatif_aktif: Collection, riwayat: Collection, observasi_strategi_saat_ini: Collection}
      */
     public function dataAnak(Anak $anak): array
     {
@@ -189,14 +197,57 @@ class AlternatifStrategiService
             $this->saranManual($anak->kelas)->where('anak_id', $anak->id),
         )->first() ?? ['anak' => $anak, 'pola' => collect(), 'manual' => collect(), 'punya_saran' => false];
 
+        $saranAturan = AlternatifStrategi::query()
+            ->where('anak_id', $anak->id)
+            ->whereNotNull('aturan_id')
+            ->with('strategi')
+            ->orderBy('id')
+            ->get();
+
+        [$riwayat, $aktif] = $saranAturan->toBase()->concat($item['manual'])
+            ->unique('id')
+            ->partition(fn (AlternatifStrategi $saran) => $saran->status === self::STATUS_DIABAIKAN);
+
+        $urutanStatus = [self::STATUS_DIPILIH => 0, self::STATUS_DISARANKAN => 1];
+
         return $item + [
-            'saran_aturan' => AlternatifStrategi::query()
-                ->where('anak_id', $anak->id)
-                ->whereNotNull('aturan_id')
-                ->with('strategi')
-                ->orderBy('id')
-                ->get(),
+            'saran_aturan' => $saranAturan,
+            'alternatif_aktif' => $aktif
+                ->sortBy([
+                    fn ($a, $b) => ($urutanStatus[$a->status] ?? 2) <=> ($urutanStatus[$b->status] ?? 2),
+                    fn ($a, $b) => $b->dibuat_pada <=> $a->dibuat_pada,
+                    fn ($a, $b) => $b->id <=> $a->id,
+                ])
+                ->values(),
+            'riwayat' => $riwayat->sortByDesc('id')->values(),
+            'observasi_strategi_saat_ini' => $this->observasiTerakhirPerStrategi(
+                $anak,
+                $item['pola']->pluck('aturan.strategi_asal_id')->unique()->values()->all(),
+            ),
         ];
+    }
+
+    /**
+     * Observasi terakhir anak untuk tiap strategi (urut tanggal lalu id, terbaru), untuk catatan
+     * di kartu "Strategi saat ini". Data observasi hanya dibaca.
+     *
+     * @param  list<int>  $strategiIds
+     * @return Collection<int, Observasi> kunci strategi_id
+     */
+    private function observasiTerakhirPerStrategi(Anak $anak, array $strategiIds): Collection
+    {
+        if ($strategiIds === []) {
+            return collect();
+        }
+
+        return Observasi::query()
+            ->where('anak_id', $anak->id)
+            ->whereIn('strategi_id', $strategiIds)
+            ->orderByDesc('tanggal')
+            ->orderByDesc('id')
+            ->get(['id', 'strategi_id', 'tanggal', 'catatan_pendukung'])
+            ->unique('strategi_id')
+            ->keyBy('strategi_id');
     }
 
     /**
@@ -247,12 +298,12 @@ class AlternatifStrategiService
             return 'Alternatif yang sudah dipilih tidak bisa diubah.';
         }
 
-        if ($alternatif->status === self::STATUS_DIABAIKAN) {
-            return 'Alternatif yang sudah diabaikan tidak bisa diubah.';
-        }
-
         if ($alternatif->status === $statusBaru) {
             return "Alternatif ini sudah berstatus {$statusBaru}.";
+        }
+
+        if ($alternatif->status === self::STATUS_DIABAIKAN && $statusBaru === self::STATUS_DIPILIH) {
+            return 'Tinjau ulang alternatif ini dari riwayat sebelum memilihnya.';
         }
 
         return in_array($statusBaru, self::TRANSISI[$alternatif->status] ?? [], true)
@@ -262,9 +313,10 @@ class AlternatifStrategiService
 
     /**
      * PBI-16: ubah status alternatif. Baris anak dikunci agar dua permintaan bersamaan
-     * tidak menghasilkan dua alternatif dipilih.
+     * tidak menghasilkan perubahan ganda (sama seperti tambahManual).
+     * Tinjau ulang (diabaikan -> disarankan) ditolak jika strategi yang sama masih disarankan untuk anak ini.
      *
-     * @throws ValidationException jika transisi tidak diizinkan.
+     * @throws ValidationException jika transisi tidak diizinkan atau strategi masih disarankan.
      */
     public function ubahStatus(AlternatifStrategi $alternatif, string $statusBaru, User $guru): AlternatifStrategi
     {
@@ -276,6 +328,10 @@ class AlternatifStrategiService
             $alasan = $this->alasanTolak($alternatif, $statusBaru);
             if ($alasan !== null) {
                 throw ValidationException::withMessages(['status' => $alasan]);
+            }
+
+            if ($statusBaru === self::STATUS_DISARANKAN && $this->strategiMasihDisarankan($alternatif->anak, $alternatif->strategi_id)) {
+                throw ValidationException::withMessages(['status' => self::PESAN_STRATEGI_GANDA]);
             }
 
             $statusLama = $alternatif->status;

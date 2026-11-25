@@ -2,8 +2,6 @@
 @php
     $anak = $data['anak'];
     $daftarPola = $data['pola'];
-    // Semua saran dari aturan, termasuk saran lama dari aturan yang sama.
-    $daftarSaranAturan = $data['saran_aturan'];
     $daftarStrategiAsal = $daftarPola->pluck('aturan.strategiAsal')->unique('id');
     $observasiTerakhir = $daftarPola->map(fn (array $pola) => $pola['tanggal']->last())->max();
 
@@ -19,17 +17,10 @@
         'strategi' => $daftarStrategiAsal->isEmpty() ? '-' : $daftarStrategiAsal->pluck('nama')->implode(', '),
     ];
 
-    // PBI-16: semua alternatif (dari aturan dan buatan guru) dengan semua status.
-    // Urutan: dipilih, disarankan, diabaikan, lalu terbaru dulu.
-    $urutanStatus = ['dipilih' => 0, 'disarankan' => 1, 'diabaikan' => 2];
-    $daftarAlternatif = $daftarSaranAturan->concat($data['manual'])
-        ->unique('id')
-        ->sortBy([
-            fn ($a, $b) => ($urutanStatus[$a->status] ?? 3) <=> ($urutanStatus[$b->status] ?? 3),
-            fn ($a, $b) => $b->dibuat_pada <=> $a->dibuat_pada,
-            fn ($a, $b) => $b->id <=> $a->id,
-        ])
-        ->values();
+    // PBI-16: alternatif disarankan/dipilih tampil di perbandingan, alternatif diabaikan di riwayat.
+    // Pemisahan dan urutan disusun di AlternatifStrategiService::dataAnak.
+    $daftarAlternatif = $data['alternatif_aktif'];
+    $daftarRiwayat = $data['riwayat'];
     $adaDipilih = $daftarAlternatif->contains('status', 'dipilih');
     $adaDisarankan = $daftarAlternatif->contains('status', 'disarankan');
 
@@ -40,8 +31,29 @@
     <a href="{{ route('guru.alternatif-strategi.index', ['kelas' => $kelas->id]) }}" dusk="kembali-ke-daftar"
         class="inline-flex items-center gap-1 text-sm text-indigo-800 hover:underline">&larr; Kembali ke daftar</a>
 
+    {{-- Banner sukses tampil 5 detik, lalu memudar 500 ms dan dihapus. Banner error tidak hilang otomatis. --}}
     @if (session('status'))
-        <p class="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" dusk="pesan-status">{{ session('status') }}</p>
+        <div data-flash role="status" dusk="pesan-status"
+            class="mt-4 flex items-start justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 transition-opacity duration-500">
+            <p>{{ session('status') }}</p>
+            <button type="button" data-tutup-flash aria-label="Tutup" dusk="tutup-pesan-status"
+                class="-my-1 shrink-0 px-1 text-xl leading-none text-green-700 hover:text-green-900">&times;</button>
+        </div>
+        <script>
+            (() => {
+                document.querySelectorAll('[data-flash]').forEach((banner) => {
+                    let ditutup = false;
+                    const tutup = () => {
+                        if (ditutup) return;
+                        ditutup = true;
+                        banner.classList.add('opacity-0');
+                        setTimeout(() => banner.remove(), 500);
+                    };
+                    setTimeout(tutup, 5000);
+                    banner.querySelector('[data-tutup-flash]').addEventListener('click', tutup);
+                });
+            })();
+        </script>
     @endif
 
     @if ($errors->hasAny(['strategi_id', 'catatan']))
@@ -137,6 +149,18 @@
                     @if ($strategiAsal->deskripsi)
                         <p class="mt-2 text-sm leading-relaxed text-gray-600">{{ $strategiAsal->deskripsi }}</p>
                     @endif
+                    {{-- Catatan dari observasi terakhir anak dengan strategi ini. --}}
+                    @php($observasiStrategi = $data['observasi_strategi_saat_ini']->get($strategiAsal->id))
+                    @if ($observasiStrategi)
+                        <div class="mt-4 rounded-r-lg border-l-4 border-gray-300 bg-white px-3 py-2.5 text-xs leading-relaxed text-gray-700">
+                            <p class="font-semibold uppercase tracking-wide text-gray-800">Catatan observasi terakhir ({{ $observasiStrategi->tanggal->format('d/m/Y') }}):</p>
+                            @if (filled($observasiStrategi->catatan_pendukung))
+                                <p class="mt-1" dusk="catatan-strategi-saat-ini">{{ $observasiStrategi->catatan_pendukung }}</p>
+                            @else
+                                <p class="mt-1 italic text-gray-500" dusk="catatan-strategi-saat-ini-kosong">Belum ada catatan.</p>
+                            @endif
+                        </div>
+                    @endif
                 </article>
             @empty
                 <article class="flex flex-col rounded-2xl border border-gray-200 bg-gray-50 p-5" dusk="kartu-strategi-saat-ini">
@@ -145,28 +169,83 @@
                 </article>
             @endforelse
 
-            {{-- Alternatif --}}
+            {{-- Alternatif disarankan dan dipilih. Nomor dihitung tanpa alternatif yang diabaikan. --}}
             @forelse ($daftarAlternatif as $saran)
                 @include('alternatif-strategi._kartu-alternatif', ['nomor' => $loop->iteration])
             @empty
                 <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-6 lg:col-span-2" dusk="belum-ada-alternatif">
                     <p class="font-semibold">Belum ada alternatif</p>
-                    @forelse ($daftarPola as $pola)
-                        <p class="mt-1 text-sm text-gray-600">
-                            {{ $pola['aturan']->respons_pemicu->label() }}:
-                            @if ($pola['jumlah'] < $pola['aturan']->minimal_kejadian)
-                                {{ $pola['jumlah'] }} dari minimal {{ $pola['aturan']->minimal_kejadian }} kejadian.
-                            @else
-                                strategi alternatif pada aturan ini sedang nonaktif.
-                            @endif
-                        </p>
-                    @empty
-                        <p class="mt-1 text-sm text-gray-600">Belum ada observasi yang cocok dengan aturan aktif. Guru tetap dapat menambah alternatif sendiri.</p>
-                    @endforelse
+                    @if ($daftarRiwayat->isNotEmpty())
+                        <p class="mt-1 text-sm text-gray-600">Semua alternatif sudah diabaikan. Tinjau ulang dari riwayat di bawah.</p>
+                    @else
+                        @forelse ($daftarPola as $pola)
+                            <p class="mt-1 text-sm text-gray-600">
+                                {{ $pola['aturan']->respons_pemicu->label() }}:
+                                @if ($pola['jumlah'] < $pola['aturan']->minimal_kejadian)
+                                    {{ $pola['jumlah'] }} dari minimal {{ $pola['aturan']->minimal_kejadian }} kejadian.
+                                @else
+                                    strategi alternatif pada aturan ini sedang nonaktif.
+                                @endif
+                            </p>
+                        @empty
+                            <p class="mt-1 text-sm text-gray-600">Belum ada observasi yang cocok dengan aturan aktif. Guru tetap dapat menambah alternatif sendiri.</p>
+                        @endforelse
+                    @endif
                 </div>
             @endforelse
         </div>
 
+    </section>
+
+    {{-- PBI-16 Riwayat: alternatif yang diabaikan, selalu terbuka. Tinjau Ulang mengembalikannya ke status disarankan. --}}
+    <section class="mt-10 border-t border-gray-200 pt-8" dusk="riwayat-alternatif">
+        <h2 class="text-xl font-semibold">Riwayat Alternatif Strategi ({{ $daftarRiwayat->count() }})</h2>
+        <p class="mt-1 text-sm text-gray-600">Alternatif yang diabaikan. Tinjau ulang untuk mengembalikannya ke perbandingan di atas.</p>
+
+        @if ($daftarRiwayat->isEmpty())
+            <p class="mt-4 rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-6 text-sm text-gray-600" dusk="riwayat-kosong">Belum ada alternatif yang diabaikan.</p>
+        @else
+            <div class="mt-4 grid gap-4 lg:grid-cols-3">
+                @foreach ($daftarRiwayat as $saran)
+                    @php($manual = $saran->aturan_id === null)
+                    {{-- scroll-mb-32: kartu yang digulir tidak tertutup bilah keputusan yang menempel di bawah layar. --}}
+                    <article class="flex scroll-mb-32 flex-col rounded-2xl border border-gray-200 bg-gray-100 p-5 text-gray-600" dusk="kartu-riwayat-{{ $saran->id }}">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3">
+                            <span class="{{ $kelasBadge }} border-gray-300 bg-white text-gray-700">{{ $manual ? 'Ditambahkan guru' : 'Dari aturan' }}</span>
+                            @include('alternatif-strategi._badge-status', ['status' => $saran->status])
+                        </div>
+
+                        <h3 class="mt-4 text-lg font-semibold text-gray-700">{{ $saran->strategi->nama }}</h3>
+
+                        @if (filled($saran->dasar_saran))
+                            <div class="mt-4 rounded-r-lg border-l-4 border-gray-300 bg-white px-3 py-2.5 text-xs leading-relaxed text-gray-600">
+                                <p class="font-semibold uppercase tracking-wide text-gray-700">{{ $manual ? 'Catatan guru:' : 'Dasar saran:' }}</p>
+                                <p class="mt-1">{{ $saran->dasar_saran }}</p>
+                            </div>
+                        @elseif ($manual)
+                            <div class="mt-4 rounded-r-lg border-l-4 border-gray-300 bg-white px-3 py-2.5 text-xs leading-relaxed">
+                                <p class="italic text-gray-500" dusk="catatan-kosong">Belum ada catatan.</p>
+                            </div>
+                        @endif
+
+                        {{-- TODO PBI-16: tampilkan waktu diabaikan jika alternatif_strategi sudah punya kolom waktu ubah status. --}}
+                        @if ($saran->dibuat_pada)
+                            <p class="mt-3 text-xs text-gray-500">Disarankan pada {{ $saran->dibuat_pada->format('d/m/Y') }}</p>
+                        @endif
+
+                        <form method="POST" action="{{ route('guru.alternatif-strategi.status', $saran) }}" class="mt-auto pt-5">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="disarankan">
+                            <button type="submit" dusk="tinjau-ulang-{{ $saran->id }}"
+                                class="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm text-gray-800 hover:bg-gray-50">
+                                Tinjau Ulang
+                            </button>
+                        </form>
+                    </article>
+                @endforeach
+            </div>
+        @endif
     </section>
 
     @if ($daftarAlternatif->isNotEmpty())

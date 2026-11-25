@@ -3,8 +3,8 @@
 namespace Tests\Browser\PBI16_TinjauAlternatifStrategi;
 
 use App\Enums\KategoriRespons;
-use App\Models\AlternatifStrategi;
 use App\Models\Aktivitas;
+use App\Models\AlternatifStrategi;
 use App\Models\Anak;
 use App\Models\AspekPerkembangan;
 use App\Models\AturanStrategi;
@@ -152,7 +152,8 @@ class TinjauAlternatifStrategiTest extends DuskTestCase
 
             $browser->click('@konfirmasi-abaikan')->waitFor('@pesan-status')
                 ->assertSeeIn('@pesan-status', 'Strategi '.$this->s['Media Visual']->nama.' diabaikan.')
-                ->assertSeeIn('@kartu-saran-'.$id.' [dusk="badge-status"]', 'Status: Diabaikan')
+                ->assertMissing('@kartu-saran-'.$id)
+                ->assertSeeIn('@kartu-riwayat-'.$id.' [dusk="badge-status"]', 'Status: Diabaikan')
                 ->assertMissing('@tandai-'.$id)
                 ->assertMissing('@abaikan-'.$id);
         });
@@ -267,8 +268,8 @@ class TinjauAlternatifStrategiTest extends DuskTestCase
             ->where('strategi_id', $this->s['Media Visual']->id)->value('status'));
     }
 
-    // TC-16-07 | Negatif | Saran yang sudah diabaikan tidak bisa dipilih lagi
-    public function test_tc_16_07_saran_yang_sudah_diabaikan_tidak_bisa_dipilih_lagi(): void
+    // TC-16-07 | Negatif | Saran yang diabaikan pindah ke riwayat dan bisa ditinjau ulang
+    public function test_tc_16_07_saran_yang_diabaikan_pindah_ke_riwayat_lalu_ditinjau_ulang(): void
     {
         $this->browse(function (Browser $browser) {
             $this->login($browser, $this->mia, self::SANDI_MIA);
@@ -277,17 +278,31 @@ class TinjauAlternatifStrategiTest extends DuskTestCase
 
             $id = $this->idSaran('Media Visual');
             $this->klikKartu($browser, 'abaikan-'.$id)->waitFor('@dialog-abaikan-alternatif');
-            $browser->click('@konfirmasi-abaikan')->waitFor('@pesan-status');
 
-            // Buka ulang Mode Fokus: kartu yang diabaikan tetap tanpa tombol Pilih dan Abaikan.
-            $this->bukaModeFokus($browser)
-                ->assertSeeIn('@kartu-saran-'.$id.' [dusk="badge-status"]', 'Status: Diabaikan')
+            // Banner hilang setelah 5 detik, jadi diperiksa langsung setelah waitFor sebelum aksi berikutnya.
+            $browser->click('@konfirmasi-abaikan')->waitFor('@pesan-status')
+                ->assertSeeIn('@pesan-status', 'Strategi '.$this->s['Media Visual']->nama.' diabaikan.')
+                ->assertMissing('@kartu-saran-'.$id)
+                ->assertSeeIn('@riwayat-alternatif', 'Riwayat Alternatif Strategi (1)');
+
+            // Riwayat ada di halaman yang sama, di bawah daftar alternatif.
+            $browser->script("document.querySelector('[dusk=\"riwayat-alternatif\"]').scrollIntoView({block: 'start'});");
+            $browser->assertVisible('@kartu-riwayat-'.$id)
+                ->assertSeeIn('@kartu-riwayat-'.$id.' [dusk="badge-status"]', 'Status: Diabaikan')
                 ->assertMissing('@tandai-'.$id)
-                ->assertMissing('@abaikan-'.$id)
-                ->assertMissing('@badge-keputusan');
+                ->assertMissing('@abaikan-'.$id);
+
+            $this->klikKartu($browser, 'tinjau-ulang-'.$id)
+                ->waitForTextIn('@pesan-status', 'siap ditinjau ulang.')
+                ->assertSeeIn('@pesan-status', 'Strategi '.$this->s['Media Visual']->nama.' siap ditinjau ulang.')
+                ->assertVisible('@kartu-saran-'.$id)
+                ->assertSeeIn('@tandai-'.$id, 'Pilih Strategi Ini')
+                ->assertSeeIn('@kartu-saran-'.$id.' [dusk="badge-status"]', 'Status: Disarankan')
+                ->assertMissing('@kartu-riwayat-'.$id)
+                ->assertPresent('@riwayat-kosong');
         });
 
-        $this->assertSame('diabaikan', AlternatifStrategi::where('anak_id', $this->anak->id)
+        $this->assertSame('disarankan', AlternatifStrategi::where('anak_id', $this->anak->id)
             ->where('strategi_id', $this->s['Media Visual']->id)->value('status'));
     }
 

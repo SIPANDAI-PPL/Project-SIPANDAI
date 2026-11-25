@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\DataMaster\SimpanAspekPerkembanganRequest;
-use App\Http\Requests\DataMaster\UbahAspekPerkembanganRequest;
 use App\Models\AspekPerkembangan;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,18 +37,18 @@ class AspekPerkembanganController extends Controller
         ]);
     }
 
-    public function store(SimpanAspekPerkembanganRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $aspek = AspekPerkembangan::create($request->validated());
+        $aspek = AspekPerkembangan::create($this->validasi($request));
 
         return redirect()
             ->route('data-master.aspek.index')
             ->with('status', "Aspek {$aspek->nama} berhasil ditambahkan.");
     }
 
-    public function update(UbahAspekPerkembanganRequest $request, AspekPerkembangan $aspek): RedirectResponse
+    public function update(Request $request, AspekPerkembangan $aspek): RedirectResponse
     {
-        $aspek->update($request->validated());
+        $aspek->update($this->validasi($request, $aspek));
 
         return redirect()
             ->route('data-master.aspek.index')
@@ -75,5 +74,48 @@ class AspekPerkembanganController extends Controller
         return redirect()
             ->route('data-master.aspek.index')
             ->with('status', "Aspek {$aspek->nama} berhasil dihapus.");
+    }
+
+    /**
+     * Validasi isian tambah dan ubah aspek.
+     * Saat mengubah, aspek yang sedang diubah diabaikan pada cek nama unik.
+     *
+     * @return array<string, mixed>
+     */
+    private function validasi(Request $request, ?AspekPerkembangan $aspek = null): array
+    {
+        $rapikan = fn (string $kolom) => is_string($request->input($kolom)) ? trim($request->input($kolom)) : $request->input($kolom);
+
+        $request->merge([
+            'nama' => $rapikan('nama'),
+            'deskripsi' => $rapikan('deskripsi'),
+        ]);
+
+        return $request->validate([
+            'nama' => [
+                'bail',
+                'required',
+                'string',
+                'max:100',
+                // Nama unik tanpa membedakan huruf besar/kecil ("Bahasa" sama dengan "bahasa").
+                function (string $attribute, mixed $value, Closure $fail) use ($aspek) {
+                    $sudahAda = AspekPerkembangan::query()
+                        ->whereRaw('LOWER(nama) = ?', [mb_strtolower($value)])
+                        ->when($aspek?->getKey(), fn ($query, $id) => $query->whereKeyNot($id))
+                        ->exists();
+
+                    if ($sudahAda) {
+                        $fail('Nama aspek sudah terdaftar.');
+                    }
+                },
+            ],
+            'deskripsi' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'nama.required' => 'Nama wajib diisi.',
+            'nama.string' => 'Nama tidak valid.',
+            'nama.max' => 'Nama maksimal 100 karakter.',
+            'deskripsi.string' => 'Deskripsi tidak valid.',
+            'deskripsi.max' => 'Deskripsi maksimal 1000 karakter.',
+        ]);
     }
 }

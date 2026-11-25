@@ -399,6 +399,28 @@ class AlternatifStrategiTest extends DuskTestCase
         $this->assertDatabaseMissing('alternatif_strategi', ['anak_id' => $this->anak->id]);
     }
 
+    // TC-15-12 | Positif | Pesan sukses hilang otomatis setelah 5 detik
+    public function test_tc_15_12_pesan_sukses_hilang_otomatis_setelah_lima_detik(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->login($browser, $this->mia, self::SANDI_MIA);
+            $this->catatObservasi($browser, KategoriRespons::KurangTertarik, 1);
+            $this->bukaModeFokus($browser);
+
+            $this->bukaDialogTambah($browser)
+                ->within('@dialog-tambah-alternatif', function (Browser $dialog) {
+                    $dialog->select('strategi_id', (string) $this->s['Permainan Gerak']->id)
+                        ->click('@simpan-alternatif');
+                })
+                ->waitFor('@pesan-status')
+                ->assertVisible('@pesan-status')
+                ->assertSeeIn('@pesan-status', "Alternatif strategi untuk {$this->anak->nama} berhasil ditambahkan.")
+                // Banner tampil 5 detik, lalu memudar 500 ms dan dihapus dari DOM.
+                ->waitUntilMissing('@pesan-status', 8)
+                ->assertMissing('@pesan-status');
+        });
+    }
+
     // ---------------------------------------------------------------- Bantuan
 
     /**

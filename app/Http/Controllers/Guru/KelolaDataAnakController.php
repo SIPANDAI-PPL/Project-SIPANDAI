@@ -178,8 +178,6 @@ class KelolaDataAnakController extends Controller
     private function ringkasAnak(Anak $anak): array
     {
         $hariIni = Carbon::today();
-        $usiaBulan = max(0, Anak::hitungUsiaBulan($anak->tanggal_lahir, $hariIni));
-
         $tanggalTerakhir = $anak->tanggal_observasi_terakhir
             ? Carbon::parse($anak->tanggal_observasi_terakhir)->startOfDay()
             : null;
@@ -194,7 +192,8 @@ class KelolaDataAnakController extends Controller
             'panggilan' => $anak->nama_panggilan ?: $anak->nama,
             'nama_panggilan' => $anak->nama_panggilan,
             'inisial' => $this->inisial($anak->nama),
-            'usia' => intdiv($usiaBulan, 12).' th '.($usiaBulan % 12).' bln',
+            // Kolom usia sudah dalam tahun penuh (diisi otomatis oleh model Anak).
+            'usia' => ($anak->usia ?? Anak::hitungUsiaTahun($anak->tanggal_lahir, $hariIni)).' tahun',
             'tanggal_lahir' => $anak->tanggal_lahir->format('Y-m-d'),
             'kelas_id' => $anak->kelas_id,
             'kelas' => $anak->kelas ? $this->ringkasKelas($anak->kelas)['nama'] : '-',

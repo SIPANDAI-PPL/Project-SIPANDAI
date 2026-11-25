@@ -70,4 +70,30 @@ class LoginTest extends DuskTestCase
         // Expected Result - Database: akun tetap nonaktif.
         $this->assertDatabaseHas('users', ['id' => $guru->id, 'aktif' => 0]);
     }
+
+    // Negatif | Login dengan kata sandi salah
+    public function test_login_dengan_kata_sandi_salah_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+
+        $guru = User::factory()->create([
+            'nama' => "Mia Stacia {$kode}",
+            'nama_pengguna' => "mia{$kode}",
+            'email' => "mia.{$kode}@tkceria.sch.id",
+            'kata_sandi' => 'GuruMia#2026',
+        ]);
+
+        $this->browse(function (Browser $browser) use ($guru) {
+            $browser->logout()
+                ->visit('/login')
+                ->type('login', $guru->nama_pengguna)
+                ->type('kata_sandi', 'SalahSandi#1')
+                ->press('Masuk')
+                ->waitForText('Email/nama pengguna atau kata sandi salah.')
+                ->assertPathIs('/login')
+                ->assertSee('Email/nama pengguna atau kata sandi salah.')
+                // Nama pengguna tetap terisi supaya guru tidak mengetik ulang.
+                ->assertInputValue('login', $guru->nama_pengguna);
+        });
+    }
 }

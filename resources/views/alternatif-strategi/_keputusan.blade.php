@@ -1,6 +1,6 @@
 {{--
     PBI-16 Bilah keputusan (sticky di bawah konten) dan dialog konfirmasi Abaikan di Mode Fokus.
-    Butuh: $daftarAlternatif (semua alternatif anak); yang berstatus dipilih disebut di bilah.
+    Butuh: $daftarAlternatif (alternatif disarankan dan dipilih); yang berstatus dipilih disebut di bilah.
     Pemicu dari _kartu-alternatif: [data-tandai] menandai kartu, [data-abaikan] membuka dialog.
 --}}
 @php
@@ -44,7 +44,7 @@
                 <button type="button" data-tutup class="text-xl leading-none text-gray-500 hover:text-gray-800" aria-label="Tutup">&times;</button>
             </div>
             <p class="mt-4 text-xs leading-relaxed text-gray-500">
-                Alternatif tetap tersimpan dan tampil, tetapi keputusan ini tidak bisa diubah lagi.
+                Alternatif tetap tersimpan dan pindah ke Riwayat Alternatif Strategi. Guru dapat meninjau ulang dari riwayat.
             </p>
         </div>
 

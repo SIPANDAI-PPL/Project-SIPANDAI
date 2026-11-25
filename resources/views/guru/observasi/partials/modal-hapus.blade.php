@@ -3,7 +3,7 @@
     Dialog konfirmasi hapus observasi. Tombol pemicu memakai atribut data-buka-hapus.
 --}}
 <dialog id="dialog-hapus-observasi" aria-labelledby="judul-hapus-observasi"
-    class="w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 p-0 backdrop:bg-gray-900/50">
+    class="m-auto w-[calc(100%-2rem)] max-w-md rounded-xl border border-gray-200 p-0 backdrop:bg-gray-900/50">
     <form method="POST" action="{{ route('guru.observasi.destroy', $observasi) }}">
         @csrf
         @method('DELETE')

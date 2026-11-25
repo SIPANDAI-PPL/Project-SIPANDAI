@@ -4,10 +4,10 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DataMaster\Concerns\FilterDataMaster;
-use App\Http\Requests\DataMaster\SimpanStrategiPembelajaranRequest;
 use App\Models\StrategiPembelajaran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class StrategiPembelajaranController extends Controller
@@ -33,16 +33,16 @@ class StrategiPembelajaranController extends Controller
         ]);
     }
 
-    public function store(SimpanStrategiPembelajaranRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $strategi = StrategiPembelajaran::create([...$request->validated(), 'aktif' => true]);
+        $strategi = StrategiPembelajaran::create([...$this->validasi($request), 'aktif' => true]);
 
         return $this->kembali("Strategi {$strategi->nama} berhasil ditambahkan.");
     }
 
-    public function update(SimpanStrategiPembelajaranRequest $request, StrategiPembelajaran $strategi): RedirectResponse
+    public function update(Request $request, StrategiPembelajaran $strategi): RedirectResponse
     {
-        $strategi->update($request->validated());
+        $strategi->update($this->validasi($request, $strategi));
 
         return $this->kembali("Strategi {$strategi->nama} berhasil diperbarui.");
     }
@@ -82,6 +82,36 @@ class StrategiPembelajaranController extends Controller
         $strategi->delete();
 
         return $this->kembali("Strategi {$strategi->nama} berhasil dihapus.");
+    }
+
+    /**
+     * Validasi isian tambah dan ubah strategi.
+     * Keunikan nama tanpa beda huruf besar/kecil mengandalkan collation MySQL (utf8mb4_unicode_ci).
+     *
+     * @return array<string, mixed>
+     */
+    private function validasi(Request $request, ?StrategiPembelajaran $strategi = null): array
+    {
+        if (is_string($request->input('nama'))) {
+            $request->merge(['nama' => trim($request->input('nama'))]);
+        }
+
+        return $request->validate([
+            'nama' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('strategi_pembelajaran', 'nama')->ignore($strategi),
+            ],
+            'deskripsi' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'nama.required' => 'Nama wajib diisi.',
+            'nama.string' => 'Nama wajib diisi.',
+            'nama.max' => 'Nama maksimal 100 karakter.',
+            'nama.unique' => 'Nama strategi sudah terdaftar.',
+            'deskripsi.string' => 'Deskripsi harus berupa teks.',
+            'deskripsi.max' => 'Deskripsi maksimal 1000 karakter.',
+        ]);
     }
 
     private function kembali(string $pesan): RedirectResponse

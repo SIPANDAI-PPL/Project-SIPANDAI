@@ -101,15 +101,19 @@ class AlternatifStrategiController extends Controller
     }
 
     /**
-     * PBI-16: ubah status alternatif (disarankan/diabaikan -> dipilih, disarankan -> diabaikan).
+     * PBI-16: ubah status alternatif (disarankan -> dipilih/diabaikan, diabaikan -> disarankan untuk tinjau ulang).
      */
     public function ubahStatus(UbahStatusAlternatifRequest $request, AlternatifStrategi $alternatif): RedirectResponse
     {
         $alternatif = $this->layanan->ubahStatus($alternatif, $request->validated('status'), $request->user());
 
+        $pesan = $alternatif->status === AlternatifStrategiService::STATUS_DISARANKAN
+            ? "Strategi {$alternatif->strategi->nama} siap ditinjau ulang."
+            : "Strategi {$alternatif->strategi->nama} {$alternatif->status}.";
+
         return redirect()
             ->route('guru.alternatif-strategi.anak', $alternatif->anak_id)
-            ->with('status', "Strategi {$alternatif->strategi->nama} {$alternatif->status}.");
+            ->with('status', $pesan);
     }
 
     /**

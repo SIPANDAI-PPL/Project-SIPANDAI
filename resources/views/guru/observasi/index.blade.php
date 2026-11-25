@@ -690,6 +690,14 @@
 
     <div class="obs">
 
+        {{-- Notifikasi berhasil (pop-up, hilang otomatis setelah 5 detik) --}}
+        @if (session('notifikasi'))
+            @php $notif = session('notifikasi'); @endphp
+            <x-notifikasi-toast
+                :judul="$notif['judul']"
+                :pesan="$notif['pesan'] ?? null" />
+        @endif
+
         {{-- Judul halaman --}}
         <header class="obs-hero">
             <div class="obs-hero-main">
@@ -713,21 +721,6 @@
                 Tambah Observasi
             </a>
         </header>
-
-        {{-- Notifikasi berhasil --}}
-        @if (session('notifikasi'))
-            @php $notif = session('notifikasi'); @endphp
-            <div class="obs-alert is-success" role="status">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                    <circle cx="12" cy="12" r="8.5" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.5 12.2 2.4 2.4 4.6-4.9" />
-                </svg>
-                <div>
-                    <p class="obs-alert-title">{{ $notif['judul'] }}</p>
-                    <p>{{ $notif['pesan'] }}</p>
-                </div>
-            </div>
-        @endif
 
         {{-- Notifikasi gagal --}}
         @if (session('gagal'))

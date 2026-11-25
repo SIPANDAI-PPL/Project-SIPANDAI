@@ -202,4 +202,216 @@ class KelolaAkunGuruTest extends DuskTestCase
         // Expected Result - Database: guru tetap wajib mengganti kata sandi.
         $this->assertDatabaseHas('users', ['id' => $this->ayu->id, 'wajib_ganti_sandi' => 1]);
     }
+
+    // TC-01-21 | Negatif | Admin menambah guru dengan NIP lebih dari 18 karakter
+    public function test_tc_01_21_nip_lebih_dari_18_karakter_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+
+        $this->browse(function (Browser $browser) use ($kode) {
+            $this->masukSebagaiAdmin($browser)
+                ->click('@tombol-tambah-guru')
+                ->waitFor('@modal-tambah')
+                ->within('@modal-tambah', function (Browser $modal) use ($kode) {
+                    $modal->type('nama', "Sinta Dewi {$kode}")
+                        ->type('nama_pengguna', "sinta{$kode}")
+                        ->type('email', "sinta.{$kode}@tkceria.sch.id")
+                        ->type('nip', '1992031520210220011')
+                        ->click('@simpan-tambah');
+                })
+                // Expected Result - Tampilan: modal terbuka lagi dengan pesan error di bawah NIP.
+                ->waitFor('@modal-tambah')
+                ->waitForTextIn('@modal-tambah', 'NIP maksimal 18 karakter.')
+                ->assertSeeIn('@modal-tambah', 'NIP maksimal 18 karakter.')
+                ->assertInputValue('#tambah_nama', "Sinta Dewi {$kode}")
+                ->assertMissing('@modal-sandi-sementara');
+        });
+
+        // Expected Result - Database: akun tidak tersimpan.
+        $this->assertDatabaseMissing('users', ['nama_pengguna' => "sinta{$kode}"]);
+    }
+
+    /**
+     * Membaca status validasi bawaan browser (HTML5) pada sebuah input.
+     */
+    private function validitas(Browser $browser, string $selector, string $jenis): bool
+    {
+        return (bool) $browser->script("return document.querySelector('{$selector}').validity.{$jenis};")[0];
+    }
+
+    // TC-01-10 | Negatif | Admin menyimpan akun guru dengan field wajib kosong
+    public function test_tc_01_10_field_wajib_kosong_menampilkan_pesan_error(): void
+    {
+        $jumlahAwal = User::count();
+
+        $this->browse(function (Browser $browser) {
+            $this->masukSebagaiAdmin($browser)
+                ->click('@tombol-tambah-guru')
+                ->waitFor('@modal-tambah')
+                ->click('@simpan-tambah')
+                ->pause(500)
+                // Expected Result - Tampilan: browser menahan form dan menandai field wajib yang kosong.
+                ->assertVisible('@modal-tambah')
+                ->assertMissing('@modal-sandi-sementara');
+
+            foreach (['#tambah_nama', '#tambah_nama_pengguna', '#tambah_email'] as $field) {
+                $this->assertTrue($this->validitas($browser, $field, 'valueMissing'), "{$field} harus ditandai wajib diisi.");
+            }
+            $this->assertNotSame('', $browser->script("return document.querySelector('#tambah_nama').validationMessage;")[0]);
+        });
+
+        // Expected Result - Database: tidak ada akun baru.
+        $this->assertSame($jumlahAwal, User::count());
+    }
+
+    // TC-01-11 | Negatif | Admin mengisi email dengan format tidak valid
+    public function test_tc_01_11_format_email_tidak_valid_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+
+        $this->browse(function (Browser $browser) use ($kode) {
+            $this->masukSebagaiAdmin($browser)
+                ->click('@tombol-tambah-guru')
+                ->waitFor('@modal-tambah')
+                ->within('@modal-tambah', function (Browser $modal) use ($kode) {
+                    $modal->type('nama', "Rina Kartika {$kode}")
+                        ->type('nama_pengguna', "rina{$kode}")
+                        ->type('email', 'rina.kartika')
+                        ->click('@simpan-tambah');
+                })
+                ->pause(500)
+                // Expected Result - Tampilan: browser menolak format email dan modal tetap terbuka.
+                ->assertVisible('@modal-tambah')
+                ->assertMissing('@modal-sandi-sementara');
+
+            $this->assertTrue($this->validitas($browser, '#tambah_email', 'typeMismatch'));
+        });
+
+        // Expected Result - Database: akun tidak tersimpan.
+        $this->assertDatabaseMissing('users', ['nama_pengguna' => "rina{$kode}"]);
+    }
+
+    // TC-01-12 | Negatif | Admin menambah guru dengan email yang sudah terdaftar
+    public function test_tc_01_12_email_duplikat_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+
+        $this->browse(function (Browser $browser) use ($kode) {
+            $this->masukSebagaiAdmin($browser)
+                ->click('@tombol-tambah-guru')
+                ->waitFor('@modal-tambah')
+                ->within('@modal-tambah', function (Browser $modal) use ($kode) {
+                    $modal->type('nama', "Rina Kartika {$kode}")
+                        ->type('nama_pengguna', "rina{$kode}")
+                        ->type('email', $this->ayu->email)
+                        ->click('@simpan-tambah');
+                })
+                // Expected Result - Tampilan: modal terbuka lagi dengan pesan error dari server.
+                ->waitForTextIn('@modal-tambah', 'Email sudah terdaftar.')
+                ->assertSeeIn('@modal-tambah', 'Email sudah terdaftar.')
+                ->assertMissing('@modal-sandi-sementara');
+        });
+
+        // Expected Result - Database: akun baru tidak tersimpan.
+        $this->assertDatabaseMissing('users', ['nama_pengguna' => "rina{$kode}"]);
+    }
+
+    // TC-01-13 | Negatif | Admin menambah guru dengan nama pengguna yang sudah terdaftar
+    public function test_tc_01_13_nama_pengguna_duplikat_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+
+        $this->browse(function (Browser $browser) use ($kode) {
+            $this->masukSebagaiAdmin($browser)
+                ->click('@tombol-tambah-guru')
+                ->waitFor('@modal-tambah')
+                ->within('@modal-tambah', function (Browser $modal) use ($kode) {
+                    $modal->type('nama', "Rina Kartika {$kode}")
+                        ->type('nama_pengguna', $this->ayu->nama_pengguna)
+                        ->type('email', "rina.{$kode}@tkceria.sch.id")
+                        ->click('@simpan-tambah');
+                })
+                ->waitForTextIn('@modal-tambah', 'Nama pengguna sudah terdaftar.')
+                ->assertSeeIn('@modal-tambah', 'Nama pengguna sudah terdaftar.')
+                ->assertMissing('@modal-sandi-sementara');
+        });
+
+        $this->assertDatabaseMissing('users', ['email' => "rina.{$kode}@tkceria.sch.id"]);
+    }
+
+    // TC-01-16 | Error | Guru membuka halaman Kelola Akun Guru
+    public function test_tc_01_16_guru_membuka_kelola_akun_guru_mendapat_403(): void
+    {
+        $jumlahAwal = User::count();
+
+        $this->browse(function (Browser $browser) {
+            $browser->logout()
+                ->loginAs($this->ayu)
+                ->visit('/admin/guru')
+                ->assertSee('403')
+                ->assertMissing('@tombol-tambah-guru');
+        });
+
+        $this->assertSame($jumlahAwal, User::count());
+    }
+
+    // TC-01-17 | Error | Tamu membuka halaman Kelola Akun Guru
+    public function test_tc_01_17_tamu_diarahkan_ke_login(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $browser->logout()
+                ->visit('/admin/guru')
+                ->waitForLocation('/login')
+                ->assertPathIs('/login')
+                ->assertSee('Masuk ke SIPANDAI');
+        });
+    }
+
+    // TC-01-18 | Negatif | Guru login dengan kata sandi lama setelah direset admin
+    public function test_tc_01_18_login_dengan_kata_sandi_lama_setelah_reset_ditolak(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->masukSebagaiAdmin($browser);
+            $this->bukaDaftarGuruTestIni($browser)
+                ->click("@menu-aksi-{$this->ayu->id}")
+                ->waitFor("@aksi-reset-{$this->ayu->id}")
+                ->click("@aksi-reset-{$this->ayu->id}")
+                ->waitFor('@modal-reset')
+                ->click('@konfirmasi-reset')
+                ->waitFor('@modal-sandi-sementara');
+
+            $browser->logout()
+                ->visit('/login')
+                ->type('login', $this->ayu->nama_pengguna)
+                ->type('kata_sandi', 'SandiLama#2026')
+                ->press('Masuk')
+                // Expected Result - Tampilan: login ditolak dengan pesan error.
+                ->waitForText('Email/nama pengguna atau kata sandi salah.')
+                ->assertPathIs('/login')
+                ->assertSee('Email/nama pengguna atau kata sandi salah.');
+        });
+
+        // Expected Result - Database: kata sandi lama sudah tidak berlaku.
+        $this->assertFalse(Hash::check('SandiLama#2026', $this->ayu->fresh()->getAuthPassword()));
+    }
+
+    // TC-01-19 | Error | Guru yang wajib ganti sandi membuka dashboard
+    public function test_tc_01_19_guru_wajib_ganti_sandi_diarahkan_ke_ganti_kata_sandi(): void
+    {
+        $this->ayu->update(['wajib_ganti_sandi' => true]);
+
+        $this->browse(function (Browser $browser) {
+            $browser->logout()
+                ->loginAs($this->ayu)
+                ->visit('/guru/dashboard')
+                ->waitForLocation('/ganti-kata-sandi')
+                ->assertPathIs('/ganti-kata-sandi')
+                ->assertSee('Anda masih memakai kata sandi sementara.')
+                // Keluar lewat tombol supaya sesi tidak terbawa ke test berikutnya.
+                ->press('Keluar')
+                ->waitForLocation('/login');
+        });
+
+        $this->assertDatabaseHas('users', ['id' => $this->ayu->id, 'wajib_ganti_sandi' => 1]);
+    }
 }

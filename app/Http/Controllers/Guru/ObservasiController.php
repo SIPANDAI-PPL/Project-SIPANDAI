@@ -291,20 +291,35 @@ class ObservasiController extends Controller
     }
 
     /**
-     * Menghapus observasi.
+     * Menghapus observasi beserta riwayat perubahannya.
+     *
+     * Kolom riwayat_perubahan.observasi_id memakai restrictOnDelete, sehingga
+     * riwayat dihapus lebih dulu di dalam satu transaksi agar observasi dapat
+     * dihapus tanpa meninggalkan baris yatim.
      */
     public function destroy(Request $request, Observasi $observasi): RedirectResponse
     {
         $this->pastikanMilikGuru($request, $observasi);
 
-        // TODO(PBI-8): Implementasi hapus observasi menunggu kesepakatan ketua tim.
-        // Kolom riwayat_perubahan.observasi_id memakai restrictOnDelete, sehingga
-        // observasi tidak dapat dihapus permanen selama baris riwayatnya masih ada.
-        // Opsi yang perlu disepakati: soft delete pada observasi, atau hapus riwayat
-        // lebih dulu di dalam satu transaksi. Jangan hapus data sebelum diputuskan.
+        try {
+            DB::transaction(function () use ($observasi): void {
+                $observasi->riwayatPerubahan()->delete();
+                $observasi->delete();
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('guru.observasi.show', $observasi)
+                ->with('gagal', 'Observasi gagal dihapus. Silakan coba kembali.');
+        }
+
         return redirect()
-            ->route('guru.observasi.show', $observasi)
-            ->with('gagal', 'Fitur hapus observasi belum tersedia karena masih menunggu kesepakatan tim.');
+            ->route('guru.observasi.index')
+            ->with('notifikasi', [
+                'judul' => 'Observasi berhasil dihapus',
+                'pesan' => 'Catatan observasi beserta riwayat perubahannya telah dihapus.',
+            ]);
     }
 
     /**

@@ -38,8 +38,29 @@ class Anak extends Model
     }
 
     /**
+     * Kolom usia disimpan dalam tahun penuh dan dihitung ulang setiap kali
+     * tanggal lahir diisi atau diubah, jadi tampilan cukup membaca kolom ini.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Anak $anak) {
+            if ($anak->tanggal_lahir && ($anak->isDirty('tanggal_lahir') || $anak->usia === null)) {
+                $anak->usia = self::hitungUsiaTahun($anak->tanggal_lahir);
+            }
+        });
+    }
+
+    /**
+     * Usia dalam tahun penuh pada tanggal acuan (default hari ini).
+     */
+    public static function hitungUsiaTahun(CarbonInterface|string $tanggalLahir, ?CarbonInterface $acuan = null): int
+    {
+        return intdiv(max(0, self::hitungUsiaBulan($tanggalLahir, $acuan)), 12);
+    }
+
+    /**
      * Usia dalam bulan penuh pada tanggal acuan (default hari ini).
-     * Dipakai validasi usia 24–59 bulan dan tampilan "N th M bln".
+     * Dipakai validasi usia 24–59 bulan.
      */
     public static function hitungUsiaBulan(CarbonInterface|string $tanggalLahir, ?CarbonInterface $acuan = null): int
     {

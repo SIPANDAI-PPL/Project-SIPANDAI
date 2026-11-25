@@ -1,13 +1,12 @@
 {{--
     PBI-16 Satu kartu alternatif strategi di Mode Fokus.
-    Butuh: $saran (AlternatifStrategi dengan relasi strategi), $nomor (urutan kartu).
+    Butuh: $saran (AlternatifStrategi disarankan/dipilih dengan relasi strategi), $nomor (urutan kartu).
     Tombol "Pilih Strategi Ini" hanya menandai kartu di browser; penyimpanan lewat bilah keputusan
-    (_keputusan.blade.php). Kartu diabaikan tampil redup tanpa tombol.
+    (_keputusan.blade.php). Alternatif diabaikan tidak memakai kartu ini, tetapi tampil di riwayat (fokus.blade.php).
 --}}
 @php
     $manual = $saran->aturan_id === null;
     $dipilih = $saran->status === 'dipilih';
-    $diabaikan = $saran->status === 'diabaikan';
     $kelasBadge = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium';
     $kelasTombolUtama = 'inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-indigo-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-50';
     $kelasTombolSekunder = 'inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50';
@@ -18,7 +17,6 @@
         'flex flex-col rounded-2xl bg-white p-5',
         'border-2 border-indigo-900' => $dipilih,
         'border border-gray-200' => ! $dipilih,
-        'opacity-60' => $diabaikan,
     ])>
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
         <div class="flex flex-wrap items-center gap-2">
@@ -39,17 +37,20 @@
         <p class="mt-2 text-sm leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
     @endif
 
-    @if ($saran->dasar_saran)
+    {{-- Alternatif buatan guru selalu menampilkan kotak catatan; jika kosong, hanya tampil "Belum ada catatan." tanpa label. --}}
+    @if (filled($saran->dasar_saran))
         <div class="mt-4 rounded-r-lg border-l-4 border-indigo-200 bg-gray-50 px-3 py-2.5 text-xs leading-relaxed text-gray-700">
             <p class="font-semibold uppercase tracking-wide text-gray-800">{{ $manual ? 'Catatan guru:' : 'Dasar saran:' }}</p>
             <p class="mt-1">{{ $saran->dasar_saran }}</p>
         </div>
+    @elseif ($manual)
+        <div class="mt-4 rounded-r-lg border-l-4 border-indigo-200 bg-gray-50 px-3 py-2.5 text-xs leading-relaxed text-gray-700">
+            <p class="italic text-gray-500" dusk="catatan-kosong">Belum ada catatan.</p>
+        </div>
     @endif
 
     <div class="mt-auto space-y-2 pt-5">
-        @if ($diabaikan)
-            {{-- Alternatif diabaikan tidak bisa diubah lagi, jadi tanpa tombol. --}}
-        @elseif ($dipilih)
+        @if ($dipilih)
             {{-- PBI-17: satu alternatif hanya punya satu tindak lanjut. --}}
             @if ($saran->tindakLanjut)
                 <p class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center text-sm text-emerald-800" dusk="tindak-lanjut-tercatat-{{ $saran->id }}">

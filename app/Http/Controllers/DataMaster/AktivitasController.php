@@ -4,10 +4,10 @@ namespace App\Http\Controllers\DataMaster;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DataMaster\Concerns\FilterDataMaster;
-use App\Http\Requests\DataMaster\SimpanAktivitasRequest;
 use App\Models\Aktivitas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AktivitasController extends Controller
@@ -33,16 +33,16 @@ class AktivitasController extends Controller
         ]);
     }
 
-    public function store(SimpanAktivitasRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
-        $aktivitas = Aktivitas::create([...$request->validated(), 'aktif' => true]);
+        $aktivitas = Aktivitas::create([...$this->validasi($request), 'aktif' => true]);
 
         return $this->kembali("Aktivitas {$aktivitas->nama} berhasil ditambahkan.");
     }
 
-    public function update(SimpanAktivitasRequest $request, Aktivitas $aktivitas): RedirectResponse
+    public function update(Request $request, Aktivitas $aktivitas): RedirectResponse
     {
-        $aktivitas->update($request->validated());
+        $aktivitas->update($this->validasi($request, $aktivitas));
 
         return $this->kembali("Aktivitas {$aktivitas->nama} berhasil diperbarui.");
     }
@@ -75,6 +75,36 @@ class AktivitasController extends Controller
         $aktivitas->delete();
 
         return $this->kembali("Aktivitas {$aktivitas->nama} berhasil dihapus.");
+    }
+
+    /**
+     * Validasi isian tambah dan ubah aktivitas.
+     * Keunikan nama tanpa beda huruf besar/kecil mengandalkan collation MySQL (utf8mb4_unicode_ci).
+     *
+     * @return array<string, mixed>
+     */
+    private function validasi(Request $request, ?Aktivitas $aktivitas = null): array
+    {
+        if (is_string($request->input('nama'))) {
+            $request->merge(['nama' => trim($request->input('nama'))]);
+        }
+
+        return $request->validate([
+            'nama' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('aktivitas', 'nama')->ignore($aktivitas),
+            ],
+            'deskripsi' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'nama.required' => 'Nama wajib diisi.',
+            'nama.string' => 'Nama wajib diisi.',
+            'nama.max' => 'Nama maksimal 100 karakter.',
+            'nama.unique' => 'Nama aktivitas sudah terdaftar.',
+            'deskripsi.string' => 'Deskripsi harus berupa teks.',
+            'deskripsi.max' => 'Deskripsi maksimal 1000 karakter.',
+        ]);
     }
 
     private function kembali(string $pesan): RedirectResponse

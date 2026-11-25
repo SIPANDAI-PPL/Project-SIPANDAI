@@ -2,8 +2,10 @@
 
 namespace Tests\Browser\PBI04_AspekAturanStrategi;
 
+use App\Models\AlternatifStrategi;
 use App\Models\AspekPerkembangan;
 use App\Models\AturanStrategi;
+use App\Models\Observasi;
 use App\Models\StrategiPembelajaran;
 use App\Models\User;
 use Laravel\Dusk\Browser;
@@ -165,5 +167,246 @@ class AturanStrategiTest extends DuskTestCase
         });
 
         $this->assertSame($jumlahAwal, AturanStrategi::count());
+    }
+
+    /**
+     * Teks pilihan pada sebuah select di drawer aturan, tanpa placeholder.
+     *
+     * @return array<int, string>
+     */
+    private function teksPilihan(Browser $browser, string $id): array
+    {
+        return $browser->script(
+            "return [...document.getElementById('{$id}').options]"
+            .".filter(o => o.value !== '').map(o => o.text.trim());"
+        )[0];
+    }
+
+    private function bukaDrawerTambahAturan(Browser $browser): Browser
+    {
+        return $browser->loginAs($this->admin)
+            ->visitRoute('admin.aturan-strategi.index')
+            ->click('@tombol-tambah-aturan')
+            ->waitFor('@drawer-aturan');
+    }
+
+    // TC-04-14 | Negatif | Nama aspek kosong dan nama aspek duplikat ditolak
+    public function test_tc_04_14_nama_aspek_kosong_dan_duplikat_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+        AspekPerkembangan::factory()->create(['nama' => "Bahasa {$kode}"]);
+        $jumlahAwal = AspekPerkembangan::count();
+
+        $this->browse(function (Browser $browser) use ($kode) {
+            $browser->loginAs($this->admin)
+                ->visitRoute('data-master.aspek.index')
+                ->click('@tombol-tambah-aspek')
+                ->waitFor('@modal-tambah')
+                ->within('@modal-tambah', function (Browser $modal) {
+                    $modal->click('@simpan-tambah');
+                })
+                // Nama kosong: modal terbuka lagi dengan pesan error dari server.
+                ->waitFor('@salah-nama-tambah')
+                ->assertSeeIn('@salah-nama-tambah', 'Nama wajib diisi.')
+                ->within('@modal-tambah', function (Browser $modal) use ($kode) {
+                    // Huruf berbeda tetap dianggap nama yang sama.
+                    $modal->type('nama', "bahasa {$kode}")
+                        ->click('@simpan-tambah');
+                })
+                ->waitForTextIn('@salah-nama-tambah', 'Nama aspek sudah terdaftar.')
+                ->assertSeeIn('@salah-nama-tambah', 'Nama aspek sudah terdaftar.')
+                ->assertMissing('@pesan-status');
+        });
+
+        // Expected Result - Database: tidak ada aspek baru.
+        $this->assertSame($jumlahAwal, AspekPerkembangan::count());
+    }
+
+    // TC-04-15 | Negatif | Menghapus aspek yang sudah dipakai observasi ditolak
+    public function test_tc_04_15_hapus_aspek_yang_sudah_dipakai_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+        $aspek = AspekPerkembangan::factory()->create(['nama' => "Seni {$kode}"]);
+
+        $this->browse(function (Browser $browser) use ($kode, $aspek) {
+            $browser->loginAs($this->admin)
+                ->visitRoute('data-master.aspek.index', ['q' => $kode])
+                ->waitFor('@baris-aspek-'.$aspek->id)
+                ->click('@menu-aksi-'.$aspek->id)
+                ->waitFor('@aksi-hapus-'.$aspek->id)
+                ->click('@aksi-hapus-'.$aspek->id)
+                ->waitFor('@modal-hapus');
+
+            // Selama dialog terbuka, guru mencatat observasi dengan aspek ini.
+            Observasi::factory()->create(['aspek_id' => $aspek->id]);
+
+            $browser->click('@konfirmasi-hapus')
+                // Expected Result - Tampilan: server menolak dengan pesan error.
+                ->waitFor('@pesan-gagal-hapus')
+                ->assertSeeIn('@pesan-gagal-hapus', 'Aspek sudah dipakai pada 1 observasi dan 0 aturan sehingga tidak dapat dihapus.')
+                ->assertMissing('@pesan-status');
+        });
+
+        $this->assertDatabaseHas('aspek_perkembangan', ['id' => $aspek->id]);
+    }
+
+    // TC-04-12 | Negatif | Strategi nonaktif tidak bisa dipilih di aturan
+    public function test_tc_04_12_strategi_nonaktif_tidak_muncul_di_pilihan(): void
+    {
+        $kode = $this->kodeUnik();
+        $aktif = StrategiPembelajaran::factory()->create(['nama' => "Media visual {$kode}"]);
+        $nonaktif = StrategiPembelajaran::factory()->nonaktif()->create(['nama' => "Pendampingan individu {$kode}"]);
+
+        $this->browse(function (Browser $browser) use ($aktif, $nonaktif) {
+            $this->bukaDrawerTambahAturan($browser);
+
+            foreach (['strategi_asal_id', 'strategi_alternatif_id'] as $id) {
+                $pilihan = $this->teksPilihan($browser, $id);
+                $this->assertContains($aktif->nama, $pilihan);
+                $this->assertNotContains($nonaktif->nama, $pilihan);
+            }
+        });
+    }
+
+    // TC-04-17 | Negatif | Minimal kejadian kurang dari 2 ditolak
+    public function test_tc_04_17_minimal_kejadian_kurang_dari_2_ditahan_form(): void
+    {
+        $kode = $this->kodeUnik();
+        $asal = StrategiPembelajaran::factory()->create(['nama' => "Permainan gerak {$kode}"]);
+        $alternatif = StrategiPembelajaran::factory()->create(['nama' => "Media visual {$kode}"]);
+        $jumlahAwal = AturanStrategi::count();
+
+        $this->browse(function (Browser $browser) use ($asal, $alternatif) {
+            $this->bukaDrawerTambahAturan($browser)
+                ->within('@drawer-aturan', function (Browser $drawer) use ($asal, $alternatif) {
+                    $drawer->select('respons_pemicu', 'kurang_tertarik')
+                        ->select('strategi_asal_id', (string) $asal->id)
+                        ->clear('minimal_kejadian')
+                        ->type('minimal_kejadian', '1')
+                        ->select('strategi_alternatif_id', (string) $alternatif->id)
+                        ->assertSee('Minimal 2 kali agar saran tidak disusun dari satu pengamatan.')
+                        ->click('@simpan-aturan');
+                })
+                ->pause(500)
+                // Expected Result - Tampilan: browser menahan form dan drawer tetap terbuka.
+                ->assertVisible('@drawer-aturan')
+                ->assertMissing('@pesan-status');
+
+            $this->assertTrue((bool) $browser->script("return document.getElementById('minimal_kejadian').validity.rangeUnderflow;")[0]);
+        });
+
+        // Expected Result - Database: aturan tidak tersimpan.
+        $this->assertSame($jumlahAwal, AturanStrategi::count());
+    }
+
+    // TC-04-18 | Negatif | Aturan dengan kombinasi yang sama ditolak
+    public function test_tc_04_18_aturan_duplikat_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+        $asal = StrategiPembelajaran::factory()->create(['nama' => "Permainan gerak {$kode}"]);
+        $alternatif = StrategiPembelajaran::factory()->create(['nama' => "Media visual {$kode}"]);
+        $alternatifLain = StrategiPembelajaran::factory()->create(['nama' => "Kelompok kecil {$kode}"]);
+        AturanStrategi::factory()->create([
+            'strategi_asal_id' => $asal->id,
+            'respons_pemicu' => 'kurang_tertarik',
+            'aspek_id' => null,
+            'strategi_alternatif_id' => $alternatif->id,
+        ]);
+        $jumlahAwal = AturanStrategi::count();
+
+        $this->browse(function (Browser $browser) use ($asal, $alternatifLain) {
+            $this->bukaDrawerTambahAturan($browser)
+                ->within('@drawer-aturan', function (Browser $drawer) use ($asal, $alternatifLain) {
+                    // Strategi asal, respons, dan aspek ("Semua aspek") sama dengan aturan yang sudah ada.
+                    $drawer->select('respons_pemicu', 'kurang_tertarik')
+                        ->select('strategi_asal_id', (string) $asal->id)
+                        ->select('strategi_alternatif_id', (string) $alternatifLain->id);
+                })
+                ->waitForReload(function (Browser $browser) {
+                    $browser->click('@simpan-aturan');
+                })
+                // Expected Result - Tampilan: drawer terbuka lagi dengan pesan error dari server.
+                ->waitFor('@salah-aturan')
+                ->assertSeeIn('@salah-aturan', 'Aturan dengan strategi asal, respons pemicu, dan aspek yang sama sudah ada.')
+                ->assertMissing('@pesan-status');
+        });
+
+        $this->assertSame($jumlahAwal, AturanStrategi::count());
+        $this->assertDatabaseMissing('aturan_strategi', ['strategi_alternatif_id' => $alternatifLain->id]);
+    }
+
+    // TC-04-19 | Negatif | Respons pemicu hanya empat kategori resmi
+    public function test_tc_04_19_respons_pemicu_hanya_empat_kategori(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->bukaDrawerTambahAturan($browser);
+
+            // Expected Result - Tampilan: tidak ada pilihan di luar empat kategori respons.
+            $this->assertSame([
+                'Terlibat aktif',
+                'Terlibat dengan pendampingan',
+                'Kurang tertarik',
+                'Belum terlibat',
+            ], $this->teksPilihan($browser, 'respons_pemicu'));
+        });
+    }
+
+    // TC-04-20 | Negatif | Menghapus aturan yang sudah menghasilkan saran ditolak
+    public function test_tc_04_20_hapus_aturan_yang_sudah_menghasilkan_saran_menampilkan_pesan_error(): void
+    {
+        $kode = $this->kodeUnik();
+        $asal = StrategiPembelajaran::factory()->create(['nama' => "Permainan gerak {$kode}"]);
+        $alternatif = StrategiPembelajaran::factory()->create(['nama' => "Media visual {$kode}"]);
+        $aturanDipakai = AturanStrategi::factory()->create([
+            'strategi_asal_id' => $asal->id,
+            'strategi_alternatif_id' => $alternatif->id,
+            'respons_pemicu' => 'kurang_tertarik',
+        ]);
+        AlternatifStrategi::factory()->create(['strategi_id' => $alternatif->id, 'aturan_id' => $aturanDipakai->id]);
+        $aturanBaru = AturanStrategi::factory()->create([
+            'strategi_asal_id' => $asal->id,
+            'strategi_alternatif_id' => $alternatif->id,
+            'respons_pemicu' => 'belum_terlibat',
+        ]);
+
+        $this->browse(function (Browser $browser) use ($kode, $aturanDipakai, $aturanBaru, $alternatif) {
+            // Aturan yang sudah menghasilkan saran tidak punya menu Hapus.
+            $browser->loginAs($this->admin)
+                ->visitRoute('admin.aturan-strategi.index', ['q' => $kode])
+                ->waitFor('@baris-aturan-'.$aturanDipakai->id)
+                ->click('@menu-aksi-'.$aturanDipakai->id)
+                ->waitFor('@aksi-nonaktifkan-'.$aturanDipakai->id)
+                ->assertMissing('@aksi-hapus-'.$aturanDipakai->id)
+                // Muat ulang supaya menu yang terbuka tidak menutupi tombol baris lain.
+                ->refresh()
+                ->waitFor('@menu-aksi-'.$aturanBaru->id)
+                ->click('@menu-aksi-'.$aturanBaru->id)
+                ->waitFor('@aksi-hapus-'.$aturanBaru->id)
+                ->click('@aksi-hapus-'.$aturanBaru->id)
+                ->waitFor('@modal-hapus');
+
+            // Selama dialog terbuka, sistem menyusun saran dari aturan ini.
+            AlternatifStrategi::factory()->create(['strategi_id' => $alternatif->id, 'aturan_id' => $aturanBaru->id]);
+
+            $browser->click('@konfirmasi-hapus')
+                // Expected Result - Tampilan: server menolak dengan pesan error.
+                ->waitFor('@pesan-gagal-hapus')
+                ->assertSeeIn('@pesan-gagal-hapus', 'Aturan sudah menghasilkan 1 saran dan hanya dapat dinonaktifkan.')
+                ->assertMissing('@pesan-status');
+        });
+
+        $this->assertDatabaseHas('aturan_strategi', ['id' => $aturanBaru->id]);
+    }
+
+    // TC-04-22 | Error | Tamu membuka halaman aturan strategi
+    public function test_tc_04_22_tamu_diarahkan_ke_login(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $browser->logout()
+                ->visitRoute('admin.aturan-strategi.index')
+                ->waitForLocation('/login')
+                ->assertPathIs('/login')
+                ->waitForText('Masuk ke SIPANDAI');
+        });
     }
 }
