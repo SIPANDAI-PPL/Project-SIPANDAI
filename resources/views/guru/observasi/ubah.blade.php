@@ -201,16 +201,23 @@
                     Deskripsi Pengamatan (Opsional)
                 </label>
 
-                <textarea id="catatan_pendukung" name="catatan_pendukung"
-                    rows="4" maxlength="2000"
-                    placeholder="Tuliskan hasil pengamatan terhadap anak..."
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 @error('catatan_pendukung') border-red-500 @enderror">{{ old('catatan_pendukung', $observasi->catatan_pendukung) }}</textarea>
+                <div class="relative">
+                    <textarea id="catatan_pendukung" name="catatan_pendukung"
+                        rows="4"
+                        placeholder="Tuliskan hasil pengamatan terhadap anak..."
+                        aria-describedby="batas-catatan-pendukung"
+                        class="w-full rounded-lg border border-gray-300 px-3 pb-8 pr-20 pt-2.5 text-sm focus:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 @error('catatan_pendukung') border-red-500 @enderror">{{ old('catatan_pendukung', $observasi->catatan_pendukung) }}</textarea>
+
+                    <span id="hitung-catatan-pendukung"
+                        class="pointer-events-none absolute bottom-2 right-3 select-none rounded bg-white/90 px-1 text-xs font-medium text-gray-400"
+                        aria-live="polite">0/2000</span>
+                </div>
+
+                <p id="batas-catatan-pendukung" class="mt-1 hidden text-xs font-medium text-red-600" role="alert"></p>
 
                 @error('catatan_pendukung')
                     <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                 @enderror
-
-                <p class="mt-1 text-xs text-gray-500">Maksimal 2.000 karakter.</p>
             </section>
 
             {{-- Tombol aksi --}}
@@ -236,4 +243,52 @@
     </div>
 
     @include('guru.observasi.partials.modal-hapus', ['observasi' => $observasi])
+
+    <script>
+        (() => {
+            const area = document.getElementById('catatan_pendukung');
+            const hitung = document.getElementById('hitung-catatan-pendukung');
+            const peringatan = document.getElementById('batas-catatan-pendukung');
+            const form = area?.closest('form');
+
+            if (!area || !hitung || !peringatan || !form) {
+                return;
+            }
+
+            const MAKS = 2000;
+
+            // Penghitung tampil di dalam kotak catatan dan berubah merah saat
+            // jumlah karakter mencapai atau melewati batas.
+            const perbarui = () => {
+                const jumlah = area.value.length;
+                const penuh = jumlah >= MAKS;
+                const lebih = jumlah > MAKS;
+
+                hitung.textContent = `${jumlah}/${MAKS}`;
+                hitung.classList.toggle('text-gray-400', !penuh);
+                hitung.classList.toggle('text-red-600', penuh);
+                hitung.classList.toggle('font-semibold', penuh);
+
+                area.classList.toggle('border-red-500', lebih);
+
+                peringatan.classList.toggle('hidden', !penuh);
+                peringatan.textContent = lebih
+                    ? `Catatan melebihi batas 2.000 karakter. Kurangi ${jumlah - MAKS} karakter.`
+                    : 'Batas maksimal 2.000 karakter tercapai.';
+            };
+
+            area.addEventListener('input', perbarui);
+
+            // Cegah pengiriman formulir selama catatan masih melebihi batas.
+            form.addEventListener('submit', (event) => {
+                if (area.value.length > MAKS) {
+                    event.preventDefault();
+                    perbarui();
+                    area.focus();
+                }
+            });
+
+            perbarui();
+        })();
+    </script>
 </x-layouts.app>

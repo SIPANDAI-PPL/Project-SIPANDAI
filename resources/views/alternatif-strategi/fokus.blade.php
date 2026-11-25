@@ -30,7 +30,7 @@
             fn ($a, $b) => $b->id <=> $a->id,
         ])
         ->values();
-    $alternatifDipilih = $daftarAlternatif->firstWhere('status', 'dipilih');
+    $adaDipilih = $daftarAlternatif->contains('status', 'dipilih');
     $adaDisarankan = $daftarAlternatif->contains('status', 'disarankan');
 
     $kelasBadge = 'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium';
@@ -95,10 +95,10 @@
                         </span>
                     </p>
                     {{-- PBI-16: badge keputusan, diturunkan dari status alternatif. --}}
-                    @if ($alternatifDipilih)
-                        <p class="mt-2"><span class="{{ $kelasBadge }} border-emerald-200 bg-emerald-50 text-emerald-800" dusk="badge-keputusan"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>Ada alternatif yang dipilih</span></p>
-                    @elseif ($adaDisarankan)
+                    @if ($adaDisarankan)
                         <p class="mt-2"><span class="{{ $kelasBadge }} border-amber-200 bg-amber-50 text-amber-800" dusk="badge-keputusan"><span class="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>Menunggu keputusan guru</span></p>
+                    @elseif ($adaDipilih)
+                        <p class="mt-2"><span class="{{ $kelasBadge }} border-emerald-200 bg-emerald-50 text-emerald-800" dusk="badge-keputusan"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true"></span>Alternatif dipilih</span></p>
                     @endif
                 </div>
             </div>
@@ -180,7 +180,7 @@
 
             {{-- Alternatif --}}
             @forelse ($daftarAlternatif as $saran)
-                @include('alternatif-strategi._kartu-alternatif', ['nomor' => $loop->iteration, 'adaDipilih' => $alternatifDipilih !== null])
+                @include('alternatif-strategi._kartu-alternatif', ['nomor' => $loop->iteration])
             @empty
                 <div class="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-6 lg:col-span-2" dusk="belum-ada-alternatif">
                     <p class="font-semibold">Belum ada alternatif</p>
