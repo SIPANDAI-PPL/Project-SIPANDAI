@@ -39,10 +39,15 @@
         <p class="mt-2 text-sm leading-relaxed text-gray-700">{{ $saran->strategi->deskripsi }}</p>
     @endif
 
-    @if ($saran->dasar_saran)
+    {{-- Alternatif buatan guru selalu menampilkan kotak catatan; jika kosong, hanya tampil "Belum ada catatan." tanpa label. --}}
+    @if (filled($saran->dasar_saran))
         <div class="mt-4 rounded-r-lg border-l-4 border-indigo-200 bg-gray-50 px-3 py-2.5 text-xs leading-relaxed text-gray-700">
             <p class="font-semibold uppercase tracking-wide text-gray-800">{{ $manual ? 'Catatan guru:' : 'Dasar saran:' }}</p>
             <p class="mt-1">{{ $saran->dasar_saran }}</p>
+        </div>
+    @elseif ($manual)
+        <div class="mt-4 rounded-r-lg border-l-4 border-indigo-200 bg-gray-50 px-3 py-2.5 text-xs leading-relaxed text-gray-700">
+            <p class="italic text-gray-500" dusk="catatan-kosong">Belum ada catatan.</p>
         </div>
     @endif
 

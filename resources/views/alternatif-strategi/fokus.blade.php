@@ -40,8 +40,29 @@
     <a href="{{ route('guru.alternatif-strategi.index', ['kelas' => $kelas->id]) }}" dusk="kembali-ke-daftar"
         class="inline-flex items-center gap-1 text-sm text-indigo-800 hover:underline">&larr; Kembali ke daftar</a>
 
+    {{-- Banner sukses tampil 5 detik, lalu memudar 500 ms dan dihapus. Banner error tidak hilang otomatis. --}}
     @if (session('status'))
-        <p class="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" dusk="pesan-status">{{ session('status') }}</p>
+        <div data-flash role="status" dusk="pesan-status"
+            class="mt-4 flex items-start justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 transition-opacity duration-500">
+            <p>{{ session('status') }}</p>
+            <button type="button" data-tutup-flash aria-label="Tutup" dusk="tutup-pesan-status"
+                class="-my-1 shrink-0 px-1 text-xl leading-none text-green-700 hover:text-green-900">&times;</button>
+        </div>
+        <script>
+            (() => {
+                document.querySelectorAll('[data-flash]').forEach((banner) => {
+                    let ditutup = false;
+                    const tutup = () => {
+                        if (ditutup) return;
+                        ditutup = true;
+                        banner.classList.add('opacity-0');
+                        setTimeout(() => banner.remove(), 500);
+                    };
+                    setTimeout(tutup, 5000);
+                    banner.querySelector('[data-tutup-flash]').addEventListener('click', tutup);
+                });
+            })();
+        </script>
     @endif
 
     @if ($errors->hasAny(['strategi_id', 'catatan']))
@@ -136,6 +157,18 @@
                     <h3 class="mt-4 text-lg font-semibold">{{ $strategiAsal->nama }}</h3>
                     @if ($strategiAsal->deskripsi)
                         <p class="mt-2 text-sm leading-relaxed text-gray-600">{{ $strategiAsal->deskripsi }}</p>
+                    @endif
+                    {{-- Catatan dari observasi terakhir anak dengan strategi ini. --}}
+                    @php($observasiStrategi = $data['observasi_strategi_saat_ini']->get($strategiAsal->id))
+                    @if ($observasiStrategi)
+                        <div class="mt-4 rounded-r-lg border-l-4 border-gray-300 bg-white px-3 py-2.5 text-xs leading-relaxed text-gray-700">
+                            <p class="font-semibold uppercase tracking-wide text-gray-800">Catatan observasi terakhir ({{ $observasiStrategi->tanggal->format('d/m/Y') }}):</p>
+                            @if (filled($observasiStrategi->catatan_pendukung))
+                                <p class="mt-1" dusk="catatan-strategi-saat-ini">{{ $observasiStrategi->catatan_pendukung }}</p>
+                            @else
+                                <p class="mt-1 italic text-gray-500" dusk="catatan-strategi-saat-ini-kosong">Belum ada catatan.</p>
+                            @endif
+                        </div>
                     @endif
                 </article>
             @empty
