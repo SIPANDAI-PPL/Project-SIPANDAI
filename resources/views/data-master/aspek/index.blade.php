@@ -15,7 +15,8 @@
             @includeIf('data-master._tabs', ['tabAktif' => 'aspek'])
 
             @if (session('status'))
-                <p class="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status" dusk="pesan-status">{{ session('status') }}</p>
+                {{-- Pesan berhasil tampil sebagai pop-up dan hilang otomatis setelah 5 detik. --}}
+                <x-notifikasi-toast dusk="pesan-status" :judul="session('status')" />
             @endif
 
             @error('hapus')

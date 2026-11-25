@@ -4,6 +4,7 @@
     (lihat script di resources/views/components/layouts/app.blade.php).
 
     Pakai: <x-notifikasi-toast judul="..." pesan="..." :tautan="route('...')" />
+    Atribut tambahan (misalnya dusk="pesan-status") diteruskan ke elemen terluar.
 --}}
 @props([
     'judul',
@@ -12,7 +13,7 @@
     'labelTautan' => 'Lihat Data Observasi',
 ])
 
-<div data-notifikasi-popup
+<div {{ $attributes }} data-notifikasi-popup
     class="pointer-events-none fixed inset-x-4 top-24 z-50 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end"
     role="status" aria-live="polite">
 
