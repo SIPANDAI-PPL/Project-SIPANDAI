@@ -3,14 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\SimpanAkunGuruRequest;
-use App\Http\Requests\Admin\UbahAkunGuruRequest;
 use App\Models\Kelas;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class KelolaAkunGuruController extends Controller
@@ -56,12 +55,13 @@ class KelolaAkunGuruController extends Controller
         ]);
     }
 
-    public function store(SimpanAkunGuruRequest $request): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
+        $data = $this->validasiAkun($request);
         $kataSandi = Str::password(12);
 
         $guru = User::create([
-            ...$this->dataAkun($request),
+            ...$data,
             'kata_sandi' => $kataSandi,
             'peran' => 'guru',
             'aktif' => true,
@@ -73,9 +73,9 @@ class KelolaAkunGuruController extends Controller
             ->with('sandi_sementara', $this->dataSandiSementara($guru, $kataSandi, 'Akun guru berhasil dibuat'));
     }
 
-    public function update(UbahAkunGuruRequest $request, User $guru): RedirectResponse
+    public function update(Request $request, User $guru): RedirectResponse
     {
-        $guru->update($this->dataAkun($request));
+        $guru->update($this->validasiAkun($request, $guru));
 
         return redirect()
             ->route('admin.guru.index')
@@ -127,11 +127,45 @@ class KelolaAkunGuruController extends Controller
     }
 
     /**
+     * Validasi isian akun guru untuk tambah dan ubah.
+     * Saat mengubah, akun yang sedang diubah diabaikan pada cek unik.
+     *
      * @return array<string, string|null>
      */
-    private function dataAkun(SimpanAkunGuruRequest $request): array
+    private function validasiAkun(Request $request, ?User $guru = null): array
     {
-        $data = $request->safe()->only(['nama', 'nama_pengguna', 'email', 'nip']);
+        $data = $request->validate([
+            'nama' => ['required', 'string', 'max:100'],
+            'nama_pengguna' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/^[A-Za-z0-9._-]+$/',
+                Rule::unique('users', 'nama_pengguna')->ignore($guru?->id),
+            ],
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:100',
+                Rule::unique('users', 'email')->ignore($guru?->id),
+            ],
+            'nip' => ['nullable', 'string', 'max:18'],
+        ], [
+            'nama.required' => 'Nama lengkap wajib diisi.',
+            'nama.max' => 'Nama lengkap maksimal 100 karakter.',
+            'nama_pengguna.required' => 'Nama pengguna wajib diisi.',
+            'nama_pengguna.max' => 'Nama pengguna maksimal 50 karakter.',
+            'nama_pengguna.regex' => 'Nama pengguna hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung.',
+            'nama_pengguna.unique' => 'Nama pengguna sudah terdaftar.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.max' => 'Email maksimal 100 karakter.',
+            'email.unique' => 'Email sudah terdaftar.',
+            'nip.max' => 'NIP maksimal 18 karakter.',
+            '*.string' => 'Isian tidak valid.',
+        ]);
+
         $data['nip'] = filled($data['nip'] ?? null) ? $data['nip'] : null;
 
         return $data;

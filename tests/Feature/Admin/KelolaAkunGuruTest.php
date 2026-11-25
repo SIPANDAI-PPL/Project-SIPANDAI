@@ -249,6 +249,37 @@ class KelolaAkunGuruTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'rina.kartika@tkceria.sch.id']);
     }
 
+    public function test_tc_01_21_nip_lebih_dari_18_karakter_ditolak(): void
+    {
+        // Tambah: NIP 19 digit ditolak, NIP 18 digit diterima.
+        $this->actingAs($this->admin)
+            ->from('/admin/guru')
+            ->post('/admin/guru', $this->dataGuruBaru(['nip' => '1992031520210220011']))
+            ->assertRedirect('/admin/guru')
+            ->assertSessionHasErrors(['nip' => 'NIP maksimal 18 karakter.']);
+
+        $this->assertDatabaseMissing('users', ['nama_pengguna' => 'rinakartika']);
+
+        $this->actingAs($this->admin)
+            ->post('/admin/guru', $this->dataGuruBaru(['nip' => '199203152021022009']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('users', ['nama_pengguna' => 'rinakartika', 'nip' => '199203152021022009']);
+
+        // Ubah: NIP 19 digit juga ditolak dan NIP lama tidak berubah.
+        $this->actingAs($this->admin)
+            ->from('/admin/guru')
+            ->put("/admin/guru/{$this->mia->id}", [
+                'nama' => $this->mia->nama,
+                'nama_pengguna' => $this->mia->nama_pengguna,
+                'email' => $this->mia->email,
+                'nip' => '1992031520210220011',
+            ])
+            ->assertSessionHasErrors(['nip' => 'NIP maksimal 18 karakter.']);
+
+        $this->assertSame('199203152021022001', $this->mia->fresh()->nip);
+    }
+
     public function test_ubah_menolak_email_dan_nama_pengguna_milik_guru_lain(): void
     {
         $this->actingAs($this->admin)
