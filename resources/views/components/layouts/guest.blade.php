@@ -39,5 +39,6 @@
             });
         });
     </script>
+    <x-validasi-browser />
 </body>
 </html>
