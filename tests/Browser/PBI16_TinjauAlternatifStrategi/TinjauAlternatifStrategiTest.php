@@ -365,7 +365,102 @@ class TinjauAlternatifStrategiTest extends DuskTestCase
 
         $this->assertDatabaseMissing('alternatif_strategi', ['anak_id' => $this->anak->id]);
     }
+        // TC-16-11 | Positif | Pesan keputusan hilang otomatis setelah 5 detik
+    public function test_tc_16_11_pesan_keputusan_hilang_otomatis_setelah_lima_detik(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->login($browser, $this->mia, self::SANDI_MIA);
+            $this->catatObservasi($browser, KategoriRespons::KurangTertarik, 3);
+            $this->bukaModeFokus($browser);
 
+            $id = $this->idSaran('Media Visual');
+            $this->klikKartu($browser, 'tandai-'.$id)
+                ->waitFor('@kartu-saran-'.$id.' [data-penanda-ditandai]');
+
+            $browser->click('@simpan-keputusan')
+                ->waitFor('@pesan-status')
+                ->assertSeeIn('@pesan-status', 'Strategi '.$this->s['Media Visual']->nama.' dipilih.')
+                // Banner tampil 5 detik, lalu memudar 500 ms dan dihapus dari DOM.
+                ->waitUntilMissing('@pesan-status', 8)
+                ->assertMissing('@pesan-status')
+                // Yang hilang hanya pesan, status di kartu tetap tampil.
+                ->assertSeeIn('@kartu-saran-'.$id.' [dusk="badge-status"]', 'Status: Dipilih');
+        });
+
+        $this->assertSame('dipilih', AlternatifStrategi::where('anak_id', $this->anak->id)
+            ->where('strategi_id', $this->s['Media Visual']->id)->value('status'));
+    }
+
+    // TC-16-12 | Positif | Guru menutup pesan notifikasi dengan tombol ×
+    public function test_tc_16_12_guru_menutup_pesan_notifikasi_dengan_tombol_tutup(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->login($browser, $this->mia, self::SANDI_MIA);
+            $this->catatObservasi($browser, KategoriRespons::KurangTertarik, 3);
+            $this->bukaModeFokus($browser);
+
+            $id = $this->idSaran('Media Visual');
+            $this->klikKartu($browser, 'abaikan-'.$id)->waitFor('@dialog-abaikan-alternatif');
+
+            $browser->click('@konfirmasi-abaikan')
+                ->waitFor('@pesan-status')
+                ->assertSeeIn('@pesan-status', 'Strategi '.$this->s['Media Visual']->nama.' diabaikan.')
+                // Guru tidak menunggu 5 detik, tapi langsung menutup pesan.
+                ->click('@pesan-status button[aria-label="Tutup"]')
+                ->waitUntilMissing('@pesan-status', 2)
+                ->assertMissing('@pesan-status')
+                // Menutup pesan tidak membatalkan keputusan.
+                ->assertPresent('@kartu-riwayat-'.$id);
+        });
+
+        $this->assertSame('diabaikan', AlternatifStrategi::where('anak_id', $this->anak->id)
+            ->where('strategi_id', $this->s['Media Visual']->id)->value('status'));
+    }
+
+    // TC-16-13 | Positif | Alternatif yang diabaikan masuk ke riwayat di bawah halaman yang sama
+    public function test_tc_16_13_alternatif_yang_diabaikan_masuk_ke_riwayat_di_halaman_yang_sama(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->login($browser, $this->mia, self::SANDI_MIA);
+            $this->catatObservasi($browser, KategoriRespons::KurangTertarik, 3);
+            $this->bukaModeFokus($browser);
+
+            $id = $this->idSaran('Media Visual');
+
+            // Sebelum ada yang diabaikan, riwayat masih kosong.
+            $browser->assertPresent('@riwayat-kosong')
+                ->assertVisible('@kartu-saran-'.$id);
+
+            $this->klikKartu($browser, 'abaikan-'.$id)->waitFor('@dialog-abaikan-alternatif');
+            $browser->click('@konfirmasi-abaikan')->waitFor('@kartu-riwayat-'.$id);
+
+            // Tetap di halaman Mode Fokus yang sama, tanpa pindah halaman.
+            $browser->assertPathIs('/guru/alternatif-strategi/anak/'.$this->anak->id)
+                ->assertMissing('@kartu-saran-'.$id);
+
+            // Riwayat berada di bawah daftar alternatif.
+            [$atasRiwayat, $atasDaftar] = $browser->script(
+                "const y = s => document.querySelector(s).getBoundingClientRect().top + window.scrollY;"
+                ."return [y('[dusk=\"riwayat-alternatif\"]'), y('[dusk=\"tombol-tambah-alternatif\"]')];"
+            )[0];
+            $this->assertGreaterThan($atasDaftar, $atasRiwayat);
+
+            // Guru cukup scroll ke bawah untuk melihat kartu yang diabaikan.
+            $browser->script("document.querySelector('[dusk=\"riwayat-alternatif\"]').scrollIntoView({block: 'start'});");
+            $browser->assertSeeIn('@riwayat-alternatif', 'Riwayat Alternatif Strategi (1)')
+                ->assertMissing('@riwayat-kosong')
+                ->assertVisible('@kartu-riwayat-'.$id)
+                ->assertSeeIn('@kartu-riwayat-'.$id, $this->s['Media Visual']->nama)
+                ->assertSeeIn('@kartu-riwayat-'.$id, 'Dari aturan')
+                ->assertSeeIn('@kartu-riwayat-'.$id.' [dusk="badge-status"]', 'Status: Diabaikan')
+                ->assertVisible('@tinjau-ulang-'.$id)
+                ->assertMissing('@tandai-'.$id)
+                ->assertMissing('@abaikan-'.$id);
+        });
+
+        $this->assertSame('diabaikan', AlternatifStrategi::where('anak_id', $this->anak->id)
+            ->where('strategi_id', $this->s['Media Visual']->id)->value('status'));
+    }
     // ---------------------------------------------------------------- Bantuan
 
     /**
