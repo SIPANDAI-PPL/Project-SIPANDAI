@@ -420,7 +420,71 @@ class AlternatifStrategiTest extends DuskTestCase
                 ->assertMissing('@pesan-status');
         });
     }
+        // TC-15-13 | Positif | Alternatif tanpa catatan menampilkan "Belum ada catatan."
+    public function test_tc_15_13_alternatif_tanpa_catatan_menampilkan_belum_ada_catatan(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->login($browser, $this->mia, self::SANDI_MIA);
+            $this->catatObservasi($browser, KategoriRespons::KurangTertarik, 1);
+            $this->bukaModeFokus($browser);
 
+            // Catatan dibiarkan kosong.
+            $this->bukaDialogTambah($browser)
+                ->within('@dialog-tambah-alternatif', function (Browser $dialog) {
+                    $dialog->select('strategi_id', (string) $this->s['Kerja Kelompok']->id)
+                        ->click('@simpan-alternatif');
+                })
+                ->waitFor('@pesan-status')
+                ->assertSeeIn('@pesan-status', "Alternatif strategi untuk {$this->anak->nama} berhasil ditambahkan.");
+
+            $id = (int) AlternatifStrategi::query()
+                ->where('anak_id', $this->anak->id)
+                ->where('strategi_id', $this->s['Kerja Kelompok']->id)
+                ->value('id');
+
+            $browser->assertSeeIn('@kartu-saran-'.$id, 'Belum ada catatan.');
+
+            // Label "Catatan guru" tidak tampil kalau catatan kosong (label ditulis kapital lewat CSS).
+            $this->assertStringNotContainsStringIgnoringCase('catatan guru', $browser->text('@kartu-saran-'.$id));
+        });
+
+        $this->assertDatabaseHas('alternatif_strategi', [
+            'anak_id' => $this->anak->id,
+            'strategi_id' => $this->s['Kerja Kelompok']->id,
+            'aturan_id' => null,
+            'dasar_saran' => null,
+        ]);
+    }
+    
+        // TC-15-14 | Positif | Guru menutup pesan notifikasi dengan tombol ×
+    public function test_tc_15_14_guru_menutup_pesan_notifikasi_dengan_tombol_tutup(): void
+    {
+        $this->browse(function (Browser $browser) {
+            $this->login($browser, $this->mia, self::SANDI_MIA);
+            $this->catatObservasi($browser, KategoriRespons::KurangTertarik, 1);
+            $this->bukaModeFokus($browser);
+
+            $this->bukaDialogTambah($browser)
+                ->within('@dialog-tambah-alternatif', function (Browser $dialog) {
+                    $dialog->select('strategi_id', (string) $this->s['Permainan Gerak']->id)
+                        ->click('@simpan-alternatif');
+                })
+                ->waitFor('@pesan-status')
+                ->assertSeeIn('@pesan-status', "Alternatif strategi untuk {$this->anak->nama} berhasil ditambahkan.")
+                // Guru tidak menunggu 5 detik, tapi langsung menutup pesan.
+                ->click('@pesan-status button[aria-label="Tutup"]')
+                ->waitUntilMissing('@pesan-status', 2)
+                ->assertMissing('@pesan-status');
+        });
+
+        // Menutup pesan hanya mengubah tampilan, data tetap tersimpan.
+        $this->assertDatabaseHas('alternatif_strategi', [
+            'anak_id' => $this->anak->id,
+            'strategi_id' => $this->s['Permainan Gerak']->id,
+            'status' => 'disarankan',
+        ]);
+    }
+    
     // ---------------------------------------------------------------- Bantuan
 
     /**
